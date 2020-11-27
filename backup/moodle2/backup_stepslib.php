@@ -883,7 +883,15 @@ class backup_badges_structure_step extends backup_structure_step {
 
         // Define sources.
 
-        $badge->set_source_table('badge', array('courseid' => backup::VAR_COURSEID));
+        $parametersql = /** @lang MySQL **/'
+		                SELECT * 
+		                FROM {badge} 
+		                WHERE courseid = :courseid 
+		                AND status != ' . BADGE_STATUS_ARCHIVED;
+        $parameterparams = [
+            'courseid' => backup::VAR_COURSEID
+        ];
+        $badge->set_source_sql($parametersql, $parameterparams);
         $criterion->set_source_table('badge_criteria', array('badgeid' => backup::VAR_PARENTID));
         $endorsement->set_source_table('badge_endorsement', array('badgeid' => backup::VAR_PARENTID));
 
@@ -927,6 +935,9 @@ class backup_badges_structure_step extends backup_structure_step {
 class backup_calendarevents_structure_step extends backup_structure_step {
 
     protected function define_structure() {
+        global $CFG, $DB;
+
+        require_once($CFG->libdir . '/badgeslib.php');
 
         // Define each element separated
 
