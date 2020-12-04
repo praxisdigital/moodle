@@ -637,7 +637,7 @@ class repository_onedrive extends repository {
         $fields = "id";
         try {
             // Paths has to be reencoded to match MS Graph.
-            $encodedfullpath = str_replace('%', '%25', $fullpath);
+            $encodedfullpath = urlencode($fullpath);
             $response = $client->call('get_file_by_path', ['fullpath' => $encodedfullpath, '$select' => $fields]);
         } catch (\core\oauth2\rest_exception $re) {
             return false;

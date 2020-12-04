@@ -832,6 +832,9 @@ class backup_badges_structure_step extends backup_structure_step {
     }
 
     protected function define_structure() {
+        global $CFG, $DB;
+
+        require_once($CFG->libdir . '/badgeslib.php');
 
         // Define each element separated.
 
@@ -935,9 +938,6 @@ class backup_badges_structure_step extends backup_structure_step {
 class backup_calendarevents_structure_step extends backup_structure_step {
 
     protected function define_structure() {
-        global $CFG, $DB;
-
-        require_once($CFG->libdir . '/badgeslib.php');
 
         // Define each element separated
 
