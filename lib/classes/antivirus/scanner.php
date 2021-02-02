@@ -25,7 +25,7 @@
 namespace core\antivirus;
 
 defined('MOODLE_INTERNAL') || die();
-require_once(__DIR__ . '../../../../iplookup/lib.php');
+require_once($CFG->dirroot . '/iplookup/lib.php');
 
 /**
  * Base abstract antivirus scanner class.
@@ -237,5 +237,15 @@ abstract class scanner {
      */
     public function get_messages() : array {
         return $this->messages;
+    }
+
+    /**
+     * Getter method for the antivirus message displayed in the exception.
+     *
+     * @return array array of string and component to pass to exception constructor.
+     */
+    public function get_virus_found_message() {
+        // Base antivirus found string.
+        return ['string' => 'virusfound', 'component' => 'antivirus', 'placeholders' => []];
     }
 }

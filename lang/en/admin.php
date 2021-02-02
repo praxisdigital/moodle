@@ -348,6 +348,8 @@ $string['configsessioncookie'] = 'This setting customises the name of the cookie
 $string['configsessioncookiedomain'] = 'This allows you to change the domain that the Moodle cookies are available from. This is useful for Moodle customisations (e.g. authentication or enrolment plugins) that need to share Moodle session information with a web application on another subdomain. <strong>WARNING: it is strongly recommended to leave this setting at the default (empty) - an incorrect value will prevent all logins to the site.</strong>';
 $string['configsessioncookiepath'] = 'If you need to change where browsers send the Moodle cookies, you can change this setting to specify a subdirectory of your web site.  Otherwise the default \'/\' should be fine.';
 $string['configsessiontimeout'] = 'If people logged in to this site are idle for a long time (without loading pages) then they are automatically logged out (their session is ended).  This variable specifies how long this time should be.';
+$string['configsessiontimeoutwarning'] = 'If people logged in to this site are idle for a long time (without loading pages) then they are warned about their session is about to end.  This variable specifies how long this time should be.';
+$string['configsessiontimeoutwarningcheck'] = 'Session timeout warning must be less than session timeout';
 $string['configshowicalsource'] = 'Show source information for iCal events';
 $string['configshowcommentscount'] = 'Show comments count, it will cost one more query when display comments link';
 $string['configshowsiteparticipantslist'] = 'All of these site students and site teachers will be listed on the site participants list. Who shall be allowed to see this site participants list?';
@@ -503,7 +505,7 @@ $string['displayloginfailures'] = 'Display login failures';
 $string['divertallemails'] = 'Email diverting';
 $string['divertallemailsdetail'] = 'Used as a safeguard in development environments when testing emails and should not be used in production.';
 $string['divertallemailsexcept'] = 'Email diversion exceptions';
-$string['divertallemailsexcept_desc'] = 'A list of email exception rules separated by either commas or new lines. Each rule is interpreted as a regular expression, eg<pre>simone@acme.com
+$string['divertallemailsexcept_desc'] = 'A list of email exception rules separated by either commas or new lines. Each rule is interpreted as a regular expression e.g. <pre>simone@acme.com
 .*@acme.com
 fred(\\+.*)?@acme.com
 </pre>';
@@ -575,6 +577,8 @@ $string['enableuserfeedback'] = 'Enable feedback about this software';
 $string['enableuserfeedback_desc'] = 'If enabled, a \'Give feedback about this software\' link is displayed in the footer for users to give feedback about the Moodle software to Moodle HQ. If the \'Next feedback reminder\' option is set, the user is also shown a reminder on the Dashboard at the specified interval. Setting \'Next feedback reminder\' to \'Never\' disables the Dashboard reminder, while leaving the \'Give feedback about this software\' link in the footer.';
 $string['enablewebservices'] = 'Enable web services';
 $string['enablewsdocumentation'] = 'Web services documentation';
+$string['encryptedpassword_set'] = '(Set and encrypted)';
+$string['encryptedpassword_edit'] = 'Enter new value';
 $string['enrolinstancedefaults'] = 'Enrolment instance defaults';
 $string['enrolinstancedefaults_desc'] = 'Default enrolment settings in new courses.';
 $string['enrolmultipleusers'] = 'Enrol the users';
@@ -1189,6 +1193,7 @@ $string['sessioncookiedomain'] = 'Cookie domain';
 $string['sessioncookiepath'] = 'Cookie path';
 $string['sessionhandling'] = 'Session handling';
 $string['sessiontimeout'] = 'Timeout';
+$string['sessiontimeoutwarning'] = 'Timeout Warning';
 $string['settingdependenton'] = 'This setting may be hidden, based on the value of <strong>{$a}</strong>.';
 $string['settingfileuploads'] = 'File uploading is required for normal operation, please enable it in PHP configuration.';
 $string['settingmemorylimit'] = 'Insufficient memory detected, please set higher memory limit in PHP settings.';

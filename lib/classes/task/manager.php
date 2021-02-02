@@ -229,6 +229,7 @@ class manager {
         $record = self::record_from_scheduled_task($task);
         $record->id = $original->id;
         $record->nextruntime = $task->get_next_scheduled_time();
+        unset($record->lastruntime);
         $result = $DB->update_record('task_scheduled', $record);
 
         return $result;
@@ -512,6 +513,27 @@ class manager {
     }
 
     /**
+     * This function will return a list of all adhoc tasks that have a faildelay
+     *
+     * @param int $delay filter how long the task has been delayed
+     * @return \core\task\adhoc_task[]
+     */
+    public static function get_failed_adhoc_tasks(int $delay = 0): array {
+        global $DB;
+
+        $tasks = [];
+        $records = $DB->get_records_sql('SELECT * from {task_adhoc} WHERE faildelay > ?', [$delay]);
+
+        foreach ($records as $record) {
+            $task = self::adhoc_task_from_record($record);
+            if ($task) {
+                $tasks[] = $task;
+            }
+        }
+        return $tasks;
+    }
+
+    /**
      * Ensure quality of service for the ad hoc task queue.
      *
      * This reshuffles the adhoc tasks queue to balance by type to ensure a
@@ -679,7 +701,6 @@ class manager {
 
         $where = "(lastruntime IS NULL OR lastruntime < :timestart1)
                   AND (nextruntime IS NULL OR nextruntime < :timestart2)
-                  AND disabled = 0
                   ORDER BY lastruntime, id ASC";
         $params = array('timestart1' => $timestart, 'timestart2' => $timestart);
         $records = $DB->get_records_select('task_scheduled', $where, $params);
@@ -688,14 +709,15 @@ class manager {
 
         foreach ($records as $record) {
 
+            $task = self::scheduled_task_from_record($record);
+            // Safety check in case the task in the DB does not match a real class (maybe something was uninstalled).
+            // Also check to see if task is disabled or enabled after applying overrides.
+            if (!$task || $task->get_disabled()) {
+                continue;
+            }
+
             if ($lock = $cronlockfactory->get_lock(($record->classname), 0)) {
                 $classname = '\\' . $record->classname;
-                $task = self::scheduled_task_from_record($record);
-                // Safety check in case the task in the DB does not match a real class (maybe something was uninstalled).
-                if (!$task) {
-                    $lock->release();
-                    continue;
-                }
 
                 $task->set_lock($lock);
 

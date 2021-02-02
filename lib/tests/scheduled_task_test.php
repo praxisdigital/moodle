@@ -641,6 +641,47 @@ class core_scheduled_task_testcase extends advanced_testcase {
     }
 
     /**
+     * Check that an overridden task is sent to be processed.
+     */
+    public function test_scheduled_task_overridden_task_can_run(): void {
+        global $CFG, $DB;
+
+        $this->resetAfterTest();
+
+        // Delete all existing scheduled tasks.
+        $DB->delete_records('task_scheduled');
+
+        // Add overrides to the config.
+        $CFG->scheduled_tasks = [
+            '\core\task\scheduled_test_task' => [
+                'disabled' => 1
+            ],
+            '\core\task\scheduled_test2_task' => [
+                'disabled' => 0
+            ],
+        ];
+
+        // A task that runs once per hour.
+        $record = new stdClass();
+        $record->component = 'test_scheduled_task';
+        $record->classname = '\core\task\scheduled_test_task';
+        $record->disabled = 0;
+        $DB->insert_record('task_scheduled', $record);
+
+        // And disabled test.
+        $record->classname = '\core\task\scheduled_test2_task';
+        $record->disabled = 1;
+        $DB->insert_record('task_scheduled', $record);
+
+        $now = time();
+
+        $scheduledtask = \core\task\manager::get_next_scheduled_task($now);
+        $this->assertInstanceOf('\core\task\scheduled_test2_task', $scheduledtask);
+        $scheduledtask->execute();
+        \core\task\manager::scheduled_task_complete($scheduledtask);
+    }
+
+    /**
      * Assert that the specified tasks are equal.
      *
      * @param   \core\task\task_base $task
@@ -690,5 +731,25 @@ class core_scheduled_task_testcase extends advanced_testcase {
         );
 
         call_user_func_array([$this, 'assertNotEquals'], $args);
+    }
+
+    /**
+     * Assert that the lastruntime column holds an original value after a scheduled task is reset.
+     */
+    public function test_reset_scheduled_tasks_for_component_keeps_original_lastruntime(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        // Set lastruntime for the scheduled task.
+        $DB->set_field('task_scheduled', 'lastruntime', 123456789, ['classname' => '\core\task\session_cleanup_task']);
+
+        // Reset the task.
+        \core\task\manager::reset_scheduled_tasks_for_component('moodle');
+
+        // Fetch the task again.
+        $taskafterreset = \core\task\manager::get_scheduled_task(core\task\session_cleanup_task::class);
+
+        // Confirm, that lastruntime is still in place.
+        $this->assertEquals(123456789, $taskafterreset->get_last_run_time());
     }
 }

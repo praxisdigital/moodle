@@ -821,6 +821,13 @@ $functions = array(
         'type'        => 'write',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
+    'core_files_get_unused_draft_itemid' => array(
+        'classname' => 'core_files\external\get\unused_draft',
+        'methodname' => 'execute',
+        'description' => 'Generate a new draft itemid for the current user.',
+        'type'        => 'write',
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
     'core_form_get_filetypes_browser_data' => array(
         'classname' => 'core_form\external',
         'methodname' => 'get_filetypes_browser_data',
@@ -2606,6 +2613,16 @@ $functions = array(
         'description'   => 'Returns blocks information for the given user dashboard.',
         'type'          => 'read',
         'capabilities'  => '',
+        'services'      => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+
+    'core_block_fetch_addable_blocks' => array(
+        'classname'     => 'core_block\external\fetch_addable_blocks',
+        'methodname'    => 'execute',
+        'description'   => 'Returns all addable blocks in a given page.',
+        'type'          => 'read',
+        'capabilities'  => 'moodle/site:manageblocks',
+        'ajax'          => true,
         'services'      => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
 

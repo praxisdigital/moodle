@@ -10694,11 +10694,6 @@ body#page-lib-editor-tinymce-plugins-moodlemedia-preview {
 .moodle-dialogue-base .moodle-dialogue-fullscreen .moodle-dialogue-content {
   overflow: auto; }
 
-.moodle-dialogue-base .moodle-dialogue-fullscreen .closebutton {
-  width: 28px;
-  height: 16px;
-  background-size: 100%; }
-
 .moodle-dialogue-base .moodle-dialogue-wrap {
   background-color: #fff;
   border: 1px solid #ccc; }
@@ -12775,6 +12770,27 @@ input[disabled] {
   border: 2px dashed #343a40;
   margin: 4px 0; }
 
+.pagelayout-embedded .has-fake-blocks {
+  padding: 1rem;
+  display: flex; }
+
+.pagelayout-embedded .has-fake-blocks .embedded-main {
+  order: 0;
+  width: calc(100% - 360px);
+  margin-right: 1rem; }
+
+.pagelayout-embedded .embedded-blocks {
+  order: 1;
+  width: 360px; }
+
+@media (max-width: 767.98px) {
+  .pagelayout-embedded .has-fake-blocks {
+    display: block; }
+  .pagelayout-embedded .has-fake-blocks .embedded-main {
+    width: 100%; }
+  .pagelayout-embedded .embedded-blocks {
+    width: 100%; } }
+
 .navbar {
   max-height: 50px; }
 
@@ -13119,6 +13135,7 @@ table.calendartable caption {
   margin-bottom: 0.5rem; }
 
 .content-bank-container.view-grid .cb-heading,
+.content-bank-container.view-grid .cb-uses,
 .content-bank-container.view-grid .cb-date,
 .content-bank-container.view-grid .cb-size,
 .content-bank-container.view-grid .cb-type,
@@ -13160,12 +13177,13 @@ table.calendartable caption {
   .content-bank-container.view-list .cb-file {
     flex: 0 0 40%;
     max-width: 40%; }
+  .content-bank-container.view-list .cb-uses,
   .content-bank-container.view-list .cb-date,
   .content-bank-container.view-list .cb-size,
   .content-bank-container.view-list .cb-type,
   .content-bank-container.view-list .cb-author {
-    flex: 0 0 15%;
-    max-width: 15%; }
+    flex: 0 0 12%;
+    max-width: 12%; }
   .content-bank-container.view-list .cb-column.last {
     border-right: 0; } }
 
@@ -14174,8 +14192,6 @@ body.drawer-ease {
     padding: 0;
     visibility: visible;
     opacity: 1; }
-  [data-region=right-hand-drawer] .closewidget {
-    display: none; }
   [data-region=right-hand-drawer].hidden {
     display: block;
     right: -320px;
@@ -14191,9 +14207,6 @@ body.drawer-ease {
     top: 0;
     height: 100%;
     z-index: 1030; }
-  [data-region=right-hand-drawer] .closewidget {
-    display: block;
-    padding: 0 0.2rem; }
   body.drawer-open-left,
   body.drawer-open-right {
     overflow: hidden; } }
@@ -15768,13 +15781,34 @@ body.path-question-type {
   margin: 0 0 0.5em; }
 
 .que .correctness.correct {
+  color: #fff;
   background-color: #357a32; }
+  a.que .correctness.correct:hover, a.que .correctness.correct:focus {
+    color: #fff;
+    background-color: #255623; }
+  a.que .correctness.correct:focus, a.que .correctness.correct.focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(53, 122, 50, 0.5); }
 
 .que .correctness.partiallycorrect {
+  color: #212529;
   background-color: #f0ad4e; }
+  a.que .correctness.partiallycorrect:hover, a.que .correctness.partiallycorrect:focus {
+    color: #212529;
+    background-color: #ec971f; }
+  a.que .correctness.partiallycorrect:focus, a.que .correctness.partiallycorrect.focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(240, 173, 78, 0.5); }
 
 .que .correctness.notanswered, .que .correctness.incorrect {
+  color: #fff;
   background-color: #ca3120; }
+  a.que .correctness.notanswered:hover, a.que .correctness.notanswered:focus, .que .correctness.incorrect:hover, .que .correctness.incorrect:focus {
+    color: #fff;
+    background-color: #9e2619; }
+  a.que .correctness.notanswered:focus, a.que .correctness.notanswered.focus, .que .correctness.incorrect:focus, .que .correctness.incorrect.focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(202, 49, 32, 0.5); }
 
 .que .qtext {
   margin-bottom: 1.5em; }
@@ -18752,6 +18786,9 @@ body.behat-site .custom-control-input {
 
 body.behat-site .custom-control-label::before, body.behat-site .custom-control-label::after {
   content: none; }
+
+body.behat-site [data-region="message-drawer"] {
+  padding-right: 10px; }
 
 .phpinfo table,
 .phpinfo th,
