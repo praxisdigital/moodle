@@ -386,10 +386,17 @@ abstract class backup_cron_automated_helper {
             'courseid' => $backupcourse->courseid,
             'adminid' => $admin->id
         ));
-        \core\task\manager::queue_adhoc_task($asynctask);
+        //\core\task\manager::queue_adhoc_task($asynctask);
 
         $backupcourse->laststatus = self::BACKUP_STATUS_QUEUED;
         $DB->update_record('backup_courses', $backupcourse);
+
+        // Run the backup task immediately
+        try {
+            $asynctask->execute();
+        } catch (\Exception $e) {
+            error_log('Course automated backup failed - ' . json_encode($e));
+        }
     }
 
     /**
