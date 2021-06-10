@@ -645,7 +645,8 @@ function enable_cli_maintenance_mode() {
     } else {
         $data = get_string('sitemaintenance', 'admin');
         $data = bootstrap_renderer::early_error_content($data, null, null, null);
-        $data = bootstrap_renderer::plain_page(get_string('sitemaintenancetitle', 'admin', $SITE->fullname), $data);
+        $data = bootstrap_renderer::plain_page(get_string('sitemaintenancetitle', 'admin',
+            format_string($SITE->fullname, true, ['context' => context_system::instance()])), $data);
     }
 
     file_put_contents("$CFG->dataroot/climaintenance.html", $data);
@@ -3066,34 +3067,46 @@ class admin_setting_configcheckbox extends admin_setting {
 class admin_setting_configmulticheckbox extends admin_setting {
     /** @var array Array of choices value=>label */
     public $choices;
+    /** @var callable|null Loader function for choices */
+    protected $choiceloader = null;
 
     /**
      * Constructor: uses parent::__construct
+     *
+     * The $choices parameter may be either an array of $value => $label format,
+     * e.g. [1 => get_string('yes')], or a callback function which takes no parameters and
+     * returns an array in that format.
      *
      * @param string $name unique ascii name, either 'mysetting' for settings that in config, or 'myplugin/mysetting' for ones in config_plugins.
      * @param string $visiblename localised
      * @param string $description long localised info
      * @param array $defaultsetting array of selected
-     * @param array $choices array of $value=>$label for each checkbox
+     * @param array|callable $choices array of $value => $label for each checkbox, or a callback
      */
     public function __construct($name, $visiblename, $description, $defaultsetting, $choices) {
-        $this->choices = $choices;
+        if (is_array($choices)) {
+            $this->choices = $choices;
+        }
+        if (is_callable($choices)) {
+            $this->choiceloader = $choices;
+        }
         parent::__construct($name, $visiblename, $description, $defaultsetting);
     }
 
     /**
-     * This public function may be used in ancestors for lazy loading of choices
+     * This function may be used in ancestors for lazy loading of choices
      *
-     * @todo Check if this function is still required content commented out only returns true
+     * Override this method if loading of choices is expensive, such
+     * as when it requires multiple db requests.
+     *
      * @return bool true if loaded, false if error
      */
     public function load_choices() {
-        /*
-        if (is_array($this->choices)) {
-            return true;
+        if ($this->choiceloader) {
+            if (!is_array($this->choices)) {
+                $this->choices = call_user_func($this->choiceloader);
+            }
         }
-        .... load choices here
-        */
         return true;
     }
 
@@ -4299,7 +4312,8 @@ class admin_setting_users_with_capability extends admin_setting_configmultiselec
                     'This is unexpected, and a problem because there is no way to pass these ' .
                     'parameters to get_users_by_capability. See MDL-34657.');
         }
-        $userfields = 'u.id, u.username, ' . get_all_user_name_fields(true, 'u');
+        $userfieldsapi = \core_user\fields::for_name();
+        $userfields = 'u.id, u.username, ' . $userfieldsapi->get_sql('u', false, '', '', false)->selects;
         $users = get_users_by_capability(context_system::instance(), $this->capability, $userfields, $sort);
         $this->choices = array(
             '$@NONE@$' => get_string('nobody'),
@@ -4479,7 +4493,7 @@ class admin_setting_sitesetselect extends admin_setting_configselect {
         if ($SITE->id == $COURSE->id) {
             $COURSE = $SITE;
         }
-        format_base::reset_course_cache($SITE->id);
+        core_course\course_format::reset_course_cache($SITE->id);
 
         return '';
 
@@ -4690,7 +4704,7 @@ class admin_setting_sitesetcheckbox extends admin_setting_configcheckbox {
         if ($SITE->id == $COURSE->id) {
             $COURSE = $SITE;
         }
-        format_base::reset_course_cache($SITE->id);
+        core_course\course_format::reset_course_cache($SITE->id);
 
         return '';
     }
@@ -4772,7 +4786,7 @@ class admin_setting_sitesettext extends admin_setting_configtext {
         if ($SITE->id == $COURSE->id) {
             $COURSE = $SITE;
         }
-        format_base::reset_course_cache($SITE->id);
+        core_course\course_format::reset_course_cache($SITE->id);
 
         return '';
     }
@@ -4824,7 +4838,7 @@ class admin_setting_special_frontpagedesc extends admin_setting_confightmleditor
         if ($SITE->id == $COURSE->id) {
             $COURSE = $SITE;
         }
-        format_base::reset_course_cache($SITE->id);
+        core_course\course_format::reset_course_cache($SITE->id);
 
         return '';
     }
@@ -6309,7 +6323,7 @@ class admin_setting_special_registerauth extends admin_setting_configselect {
         $this->choices = array();
         $this->choices[''] = get_string('disable');
 
-        $authsenabled = get_enabled_auth_plugins(true);
+        $authsenabled = get_enabled_auth_plugins();
 
         foreach ($authsenabled as $auth) {
             $authplugin = get_auth_plugin($auth);
@@ -6731,32 +6745,6 @@ class admin_page_managemessageoutputs extends admin_externalpage {
         }
     }
 }
-
-/**
- * Default message outputs configuration
- *
- * @deprecated since Moodle 3.7 MDL-64495. Please use admin_page_managemessageoutputs instead.
- * @todo       MDL-64866 This will be deleted in Moodle 3.11.
- *
- * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-class admin_page_defaultmessageoutputs extends admin_page_managemessageoutputs {
-    /**
-     * Calls parent::__construct with specific arguments
-     *
-     * @deprecated since Moodle 3.7 MDL-64495. Please use admin_page_managemessageoutputs instead.
-     * @todo       MDL-64866 This will be deleted in Moodle 3.11.
-     */
-    public function __construct() {
-        global $CFG;
-
-        debugging('admin_page_defaultmessageoutputs class is deprecated. Please use admin_page_managemessageoutputs instead.',
-            DEBUG_DEVELOPER);
-
-        admin_externalpage::__construct('defaultmessageoutputs', get_string('defaultmessageoutputs', 'message'), new moodle_url('/message/defaultoutputs.php'));
-    }
-}
-
 
 /**
  * Manage question behaviours page
@@ -10408,91 +10396,6 @@ class admin_setting_managewebserviceprotocols extends admin_setting {
     }
 }
 
-
-/**
- * Special class for web service token administration.
- *
- * @author Jerome Mouneyrac
- */
-class admin_setting_managewebservicetokens extends admin_setting {
-
-    /**
-     * Calls parent::__construct with specific arguments
-     */
-    public function __construct() {
-        $this->nosave = true;
-        parent::__construct('webservicestokenui', get_string('managetokens', 'webservice'), '', '');
-    }
-
-    /**
-     * Always returns true, does nothing
-     *
-     * @return true
-     */
-    public function get_setting() {
-        return true;
-    }
-
-    /**
-     * Always returns true, does nothing
-     *
-     * @return true
-     */
-    public function get_defaultsetting() {
-        return true;
-    }
-
-    /**
-     * Always returns '', does not write anything
-     *
-     * @return string Always returns ''
-     */
-    public function write_setting($data) {
-    // do not write any setting
-        return '';
-    }
-
-    /**
-     * Builds the XHTML to display the control
-     *
-     * @param string $data Unused
-     * @param string $query
-     * @return string
-     */
-    public function output_html($data, $query='') {
-        global $CFG, $OUTPUT;
-
-        require_once($CFG->dirroot . '/webservice/classes/token_table.php');
-        $baseurl = new moodle_url('/' . $CFG->admin . '/settings.php?section=webservicetokens');
-
-        $return = $OUTPUT->box_start('generalbox webservicestokenui');
-
-        if (has_capability('moodle/webservice:managealltokens', context_system::instance())) {
-            $return .= \html_writer::div(get_string('onlyseecreatedtokens', 'webservice'));
-        }
-
-        $table = new \webservice\token_table('webservicetokens');
-        $table->define_baseurl($baseurl);
-        $table->attributes['class'] = 'admintable generaltable'; // Any need changing?
-        $table->data  = array();
-        ob_start();
-        $table->out(10, false);
-        $tablehtml = ob_get_contents();
-        ob_end_clean();
-        $return .= $tablehtml;
-
-        $tokenpageurl = "$CFG->wwwroot/$CFG->admin/webservice/tokens.php?sesskey=" . sesskey();
-
-        $return .= $OUTPUT->box_end();
-        // add a token to the table
-        $return .= "<a href=\"".$tokenpageurl."&amp;action=create\">";
-        $return .= get_string('add')."</a>";
-
-        return highlight($query, $return);
-    }
-}
-
-
 /**
  * Colour picker
  *
@@ -11476,16 +11379,22 @@ class admin_setting_filetypes extends admin_setting_configtext {
      * @return bool|string True if ok, the string if error found
      */
     public function validate($data) {
-
-        // No need to call parent's validation here as we are PARAM_RAW.
-
-        if ($this->util->is_listed($data, $this->onlytypes)) {
-            return true;
-
-        } else {
-            $troublemakers = $this->util->get_not_listed($data, $this->onlytypes);
-            return get_string('filetypesnotallowed', 'core_form', implode(' ', $troublemakers));
+        $parentcheck = parent::validate($data);
+        if ($parentcheck !== true) {
+            return $parentcheck;
         }
+
+        // Check for unknown file types.
+        if ($unknown = $this->util->get_unknown_file_types($data)) {
+            return get_string('filetypesunknown', 'core_form', implode(', ', $unknown));
+        }
+
+        // Check for disallowed file types.
+        if ($notlisted = $this->util->get_not_listed($data, $this->onlytypes)) {
+            return get_string('filetypesnotallowed', 'core_form', implode(', ', $notlisted));
+        }
+
+        return true;
     }
 
     /**

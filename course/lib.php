@@ -592,9 +592,7 @@ function course_set_marker($courseid, $marker) {
     if ($COURSE && $COURSE->id == $courseid) {
         $COURSE->marker = $marker;
     }
-    if (class_exists('format_base')) {
-        format_base::reset_course_cache($courseid);
-    }
+    core_course\course_format::reset_course_cache($courseid);
     course_modinfo::clear_instance_cache($courseid);
 }
 
@@ -2016,10 +2014,17 @@ function course_get_cm_move(cm_info $mod, $sr = null) {
             $pixicon = 't/move';
         }
 
+        $attributes = [
+            'class' => 'editing_move',
+            'data-action' => 'move',
+            'data-sectionreturn' => $sr,
+            'title' => $str->move,
+            'aria-label' => $str->move,
+        ];
         return html_writer::link(
-            new moodle_url($baseurl, array('copy' => $mod->id)),
-            $OUTPUT->pix_icon($pixicon, $str->move, 'moodle', array('class' => 'iconsmall', 'title' => '')),
-            array('class' => 'editing_move', 'data-action' => 'move', 'data-sectionreturn' => $sr)
+            new moodle_url($baseurl, ['copy' => $mod->id]),
+            $OUTPUT->pix_icon($pixicon, '', 'moodle', ['class' => 'iconsmall']),
+            $attributes
         );
     }
     return '';
@@ -2142,7 +2147,7 @@ function move_courses($courseids, $categoryid) {
  * Returns the display name of the given section that the course prefers
  *
  * Implementation of this function is provided by course format
- * @see format_base::get_section_name()
+ * @see core_course\course_format::get_section_name()
  *
  * @param int|stdClass $courseorid The course to get the section name for (object or just course id)
  * @param int|stdClass $section Section object from database or just field course_sections.section
@@ -2357,6 +2362,19 @@ function create_course($data, $editoroptions = NULL) {
         $data->summary_format = FORMAT_HTML;
     }
 
+    // Get default completion settings as a fallback in case the enablecompletion field is not set.
+    $courseconfig = get_config('moodlecourse');
+    $defaultcompletion = !empty($CFG->enablecompletion) ? $courseconfig->enablecompletion : COMPLETION_DISABLED;
+    $enablecompletion = $data->enablecompletion ?? $defaultcompletion;
+    // Unset showcompletionconditions when completion tracking is not enabled for the course.
+    if ($enablecompletion == COMPLETION_DISABLED) {
+        unset($data->showcompletionconditions);
+    } else if (!isset($data->showcompletionconditions)) {
+        // Show completion conditions should have a default value when completion is enabled. Set it to the site defaults.
+        // This scenario can happen when a course is created through data generators or through a web service.
+        $data->showcompletionconditions = $courseconfig->showcompletionconditions;
+    }
+
     if (!isset($data->visible)) {
         // data not from form, add missing visibility info
         $data->visible = $category->visible;
@@ -2535,6 +2553,11 @@ function update_course($data, $editoroptions = NULL) {
         }
     }
 
+    // Set showcompletionconditions to null when completion tracking has been disabled for the course.
+    if (isset($data->enablecompletion) && $data->enablecompletion == COMPLETION_DISABLED) {
+        $data->showcompletionconditions = null;
+    }
+
     // Update custom fields if there are any of them in the form.
     $handler = core_course\customfield\course_handler::create();
     $handler->instance_form_save($data);
@@ -2543,6 +2566,9 @@ function update_course($data, $editoroptions = NULL) {
     $DB->update_record('course', $data);
     // make sure the modinfo cache is reset
     rebuild_course_cache($data->id);
+
+    // Purge course image cache in case if course image has been updated.
+    \cache::make('core', 'course_image')->delete($data->id);
 
     // update course format options with full course data
     course_get_format($data->id)->update_course_format_options($data, $oldcourse);
@@ -3066,7 +3092,7 @@ class course_request {
      * @param string $message
      * @param int|null $courseid
      */
-    protected function notify($touser, $fromuser, $name='courserequested', $subject, $message, $courseid = null) {
+    protected function notify($touser, $fromuser, $name, $subject, $message, $courseid = null) {
         $eventdata = new \core\message\message();
         $eventdata->courseid          = empty($courseid) ? SITEID : $courseid;
         $eventdata->component         = 'moodle';
@@ -3415,12 +3441,15 @@ function mod_duplicate_activity($course, $cm, $sr = null) {
 
     $resp = new stdClass();
     if ($newcm) {
-        $courserenderer = $PAGE->get_renderer('core', 'course');
-        $completioninfo = new completion_info($course);
-        $modulehtml = $courserenderer->course_section_cm($course, $completioninfo,
-                $newcm, null, array());
 
-        $resp->fullcontent = $courserenderer->course_section_cm_list_item($course, $completioninfo, $newcm, $sr);
+        $format = course_get_format($course);
+        $renderer = $format->get_renderer($PAGE);
+        $modinfo = $format->get_modinfo();
+        $section = $modinfo->get_section_info($newcm->sectionnum);
+
+        // Get the new element html content.
+        $resp->fullcontent = $renderer->course_section_updated_cm_item($format, $section, $newcm);
+
         $resp->cmid = $newcm->id;
     } else {
         // Trigger a redirect.
@@ -4707,8 +4736,11 @@ function course_get_recent_courses(int $userid = null, int $limit = 0, int $offs
         $userid = $USER->id;
     }
 
-    $basefields = array('id', 'idnumber', 'summary', 'summaryformat', 'startdate', 'enddate', 'category',
-            'shortname', 'fullname', 'timeaccess', 'component', 'visible');
+    $basefields = [
+        'id', 'idnumber', 'summary', 'summaryformat', 'startdate', 'enddate', 'category',
+        'shortname', 'fullname', 'timeaccess', 'component', 'visible',
+        'showactivitydates', 'showcompletionconditions',
+    ];
 
     $sort = trim($sort);
     if (empty($sort)) {
@@ -4727,7 +4759,7 @@ function course_get_recent_courses(int $userid = null, int $limit = 0, int $offs
 
     $ctxfields = context_helper::get_preload_record_columns_sql('ctx');
 
-    $coursefields = 'c.' .join(',', $basefields);
+    $coursefields = 'c.' . join(',', $basefields);
 
     // Ask the favourites service to give us the join SQL for favourited courses,
     // so we can include favourite information in the query.

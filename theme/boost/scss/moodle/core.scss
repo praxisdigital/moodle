@@ -158,7 +158,7 @@ a:not([class]),
 .aabtn,
 .btn-link,
 .nav-link,
-.atto_link_button,
+.editor_atto_toolbar button,
 [role="button"],
 .list-group-item-action,
 input[type="checkbox"],
@@ -1870,10 +1870,13 @@ ul.badges {
 }
 
 .badges li .expireimage {
+    background-image: url([[pix:i/expired]]);
+    background-repeat: no-repeat;
+    background-size: 100px 100px;
     width: 100px;
     height: 100px;
     left: 25px;
-    top: 0;
+    top: 15px;
     position: absolute;
     z-index: 10;
     opacity: 0.85;
@@ -1891,6 +1894,9 @@ ul.badges {
     margin-bottom: 20px;
 
     .expireimage {
+        background-image: url([[pix:i/expired]]);
+        background-repeat: no-repeat;
+        background-size: 100px 100px;
         width: 100px;
         height: 100px;
         left: 0;
@@ -2458,6 +2464,10 @@ body.h5p-embed {
     .h5pmessages {
         min-height: 230px; // This should be the same height as default core_h5p iframes.
     }
+}
+
+#h5pcontenttypes td {
+    vertical-align: middle;
 }
 
 .text-decoration-none {

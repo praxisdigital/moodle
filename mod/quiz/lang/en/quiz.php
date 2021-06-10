@@ -131,6 +131,7 @@ $string['browsersecurity_help'] = 'If "Full screen pop-up with some JavaScript s
 * The quiz will only start if the student has a JavaScript-enabled web-browser
 * The quiz appears in a full screen popup window that covers all the other windows and has no navigation controls
 * Students are prevented, as far as is possible, from using facilities like copy and paste';
+$string['cachedef_overrides'] = 'User and group override information';
 $string['calculated'] = 'Calculated';
 $string['calculatedquestion'] = 'Calculated question not supported at line {$a}. The question will be ignored';
 $string['cannotcreatepath'] = 'Path cannot be created ({$a})';
@@ -179,14 +180,18 @@ $string['comment'] = 'Comment';
 $string['commentorgrade'] = 'Make comment or override grade';
 $string['comments'] = 'Comments';
 $string['completedon'] = 'Completed on';
+$string['completiondetail:minattempts'] = 'Make attempts: {$a}';
+$string['completiondetail:passgrade'] = 'Receive a pass grade';
+$string['completiondetail:passorexhaust'] = 'Receive a pass grade or complete all available attempts';
 $string['completionminattempts'] = 'Minimum number of attempts:';
+$string['completionminattemptsdesc'] = 'Minimum number of attempts required: {$a}';
 $string['completionminattemptsgroup'] = 'Require attempts';
 $string['completionminattemptserror'] = 'Minimum number of attempts must be lower or equal to attempts allowed.';
 $string['completionpass'] = 'Require passing grade';
 $string['completionpassdesc'] = 'Student must achieve a passing grade to complete this activity';
 $string['completionpass_help'] = 'If enabled, this activity is considered complete when the student receives a pass grade (as specified in the Grade section of the quiz settings) or higher.';
+$string['completionpassorattemptsexhausteddesc'] = 'Student must achieve a passing grade, or exhaust all available attempts to complete this activity';
 $string['completionattemptsexhausted'] = 'Or all available attempts completed';
-$string['completionattemptsexhausteddesc'] = 'Complete if all available attempts are exhausted';
 $string['completionattemptsexhausted_help'] = 'Mark quiz complete when the student has exhausted the maximum number of attempts.';
 $string['configadaptive'] = 'If you choose Yes for this option then the student will be allowed multiple responses to a question even within the same attempt at the quiz.';
 $string['configattemptsallowed'] = 'Restriction on the number of attempts students are allowed at the quiz.';
@@ -407,6 +412,7 @@ $string['gradesdeleted'] = 'Quiz grades deleted';
 $string['gradesofar'] = '{$a->method}: {$a->mygrade} / {$a->quizgrade}.';
 $string['gradetopassnotset'] = 'This quiz does not yet have a grade to pass set. It may be set in the Grade section of the quiz settings.';
 $string['gradetopassmustbeset'] = 'Grade to pass cannot be zero as this quiz has its completion method set to require passing grade. Please set a non-zero value.';
+$string['gradetopassoutof'] = 'Grade to pass: {$a->grade} out of {$a->maxgrade}';
 $string['gradingdetails'] = 'Marks for this submission: {$a->raw}/{$a->max}.';
 $string['gradingdetailsadjustment'] = 'With previous penalties this gives <strong>{$a->cur}/{$a->max}</strong>.';
 $string['gradingdetailspenalty'] = 'This submission attracted a penalty of {$a}.';
@@ -741,7 +747,7 @@ $string['quizopenclose'] = 'Open and close dates';
 $string['quizopenclose_help'] = 'Students can only start their attempt(s) after the open time and they must complete their attempts before the close time.';
 $string['quizopenclose_link'] = 'mod/quiz/timing';
 $string['quizopened'] = 'This quiz is open.';
-$string['quizopenedon'] = 'This quiz opened at {$a}';
+$string['quizopenedon'] = 'This quiz opened on {$a}';
 $string['quizopens'] = 'Quiz opens';
 $string['quizopenwillclose'] = 'This quiz is open, will close on {$a} at';
 $string['quizordernotrandom'] = 'Order of quiz not shuffled';
@@ -1017,3 +1023,6 @@ $string['numattemptsmade'] = '{$a} attempts made on this quiz';
 $string['reviewofattempt'] = 'Review of attempt {$a}';
 $string['reviewofpreview'] = 'Review of preview';
 $string['settingsoverrides'] = 'Settings overrides';
+
+// Deprecated since Moodle 3.11.
+$string['completionattemptsexhausteddesc'] = 'Complete if all available attempts are exhausted';

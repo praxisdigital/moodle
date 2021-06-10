@@ -272,100 +272,21 @@ class core_course_renderer extends plugin_renderer_base {
      * @return string
      */
     function course_section_add_cm_control($course, $section, $sectionreturn = null, $displayoptions = array()) {
-        global $CFG, $USER;
-
         // The returned control HTML can be one of the following:
         // - Only the non-ajax control (select menus of activities and resources) with a noscript fallback for non js clients.
+        // Please note that non-ajax control has been deprecated and it will be removed in the future.
+
         // - Only the ajax control (the link which when clicked produces the activity chooser modal). No noscript fallback.
-        // - [Behat only]: The non-ajax control and optionally the ajax control (depending on site settings). If included, the link
-        // takes priority and the non-ajax control is wrapped in a <noscript>.
-        // Behat requires the third case because some features run with JS, some do not. We must include the noscript fallback.
-        $behatsite = defined('BEHAT_SITE_RUNNING');
-        $nonajaxcontrol = '';
-        $ajaxcontrol = '';
+
         $courseajaxenabled = course_ajax_enabled($course);
-        $userchooserenabled = get_user_preferences('usemodchooser', $CFG->modchooserdefault);
 
-        // Decide what combination of controls to output:
-        // During behat runs, both controls can be used in conjunction to provide non-js fallback.
-        // During normal use only one control or the other will be output. No non-js fallback is needed.
-        $rendernonajaxcontrol = $behatsite || !$courseajaxenabled || !$userchooserenabled || $course->id != $this->page->course->id;
-        $renderajaxcontrol = $courseajaxenabled && $userchooserenabled && $course->id == $this->page->course->id;
-
-        // The non-ajax control, which includes an entirely non-js (<noscript>) fallback too.
+        // Non ajax control is under deprecated, $rendernonajaxcontrol will be removed in later versions.
+        $rendernonajaxcontrol = !$courseajaxenabled || $course->id != $this->page->course->id;
         if ($rendernonajaxcontrol) {
-            $vertical = !empty($displayoptions['inblock']);
-
-            // Check to see if user can add menus.
-            if (!has_capability('moodle/course:manageactivities', context_course::instance($course->id))
-                || !$this->page->user_is_editing()) {
-                return '';
-            }
-
-            // Retrieve all modules with associated metadata.
-            $contentitemservice = \core_course\local\factory\content_item_service_factory::get_content_item_service();
-            $urlparams = ['section' => $section];
-            if (!is_null($sectionreturn)) {
-                $urlparams['sr'] = $sectionreturn;
-            }
-            $modules = $contentitemservice->get_content_items_for_user_in_course($USER, $course, $urlparams);
-
-            // Return if there are no content items to add.
-            if (empty($modules)) {
-                return '';
-            }
-
-            // We'll sort resources and activities into two lists.
-            $activities = array(MOD_CLASS_ACTIVITY => array(), MOD_CLASS_RESOURCE => array());
-
-            foreach ($modules as $module) {
-                $activityclass = MOD_CLASS_ACTIVITY;
-                if ($module->archetype == MOD_ARCHETYPE_RESOURCE) {
-                    $activityclass = MOD_CLASS_RESOURCE;
-                } else if ($module->archetype === MOD_ARCHETYPE_SYSTEM) {
-                    // System modules cannot be added by user, do not add to dropdown.
-                    continue;
-                }
-                $link = $module->link;
-                $activities[$activityclass][$link] = $module->title;
-            }
-
-            $straddactivity = get_string('addactivity');
-            $straddresource = get_string('addresource');
-            $sectionname = get_section_name($course, $section);
-            $strresourcelabel = get_string('addresourcetosection', null, $sectionname);
-            $stractivitylabel = get_string('addactivitytosection', null, $sectionname);
-
-            $nonajaxcontrol = html_writer::start_tag('div', array('class' => 'section_add_menus', 'id' => 'add_menus-section-'
-                . $section));
-
-            if (!$vertical) {
-                $nonajaxcontrol .= html_writer::start_tag('div', array('class' => 'horizontal'));
-            }
-
-            if (!empty($activities[MOD_CLASS_RESOURCE])) {
-                $select = new url_select($activities[MOD_CLASS_RESOURCE], '', array('' => $straddresource), "ressection$section");
-                $select->set_help_icon('resources');
-                $select->set_label($strresourcelabel, array('class' => 'accesshide'));
-                $nonajaxcontrol .= $this->output->render($select);
-            }
-
-            if (!empty($activities[MOD_CLASS_ACTIVITY])) {
-                $select = new url_select($activities[MOD_CLASS_ACTIVITY], '', array('' => $straddactivity), "section$section");
-                $select->set_help_icon('activities');
-                $select->set_label($stractivitylabel, array('class' => 'accesshide'));
-                $nonajaxcontrol .= $this->output->render($select);
-            }
-
-            if (!$vertical) {
-                $nonajaxcontrol .= html_writer::end_tag('div');
-            }
-
-            $nonajaxcontrol .= html_writer::end_tag('div');
-        }
-
-        // The ajax control - the 'Add an activity or resource' link.
-        if ($renderajaxcontrol) {
+            // The non-ajax control, which includes an entirely non-js (<noscript>) fallback too.
+            return $this->course_section_add_cm_control_nonajax($course, $section, $sectionreturn, $displayoptions);
+        } else {
+            // The ajax control - the 'Add an activity or resource' link.
             // The module chooser link.
             $straddeither = get_string('addresourceoractivity');
             $ajaxcontrol = html_writer::start_tag('div', array('class' => 'mdl-right'));
@@ -384,18 +305,100 @@ class core_course_renderer extends plugin_renderer_base {
 
             // Load the JS for the modal.
             $this->course_activitychooser($course->id);
+            return $ajaxcontrol;
+        }
+    }
+
+    /**
+     * Render the deprecated nonajax activity chooser.
+     *
+     * @deprecated since Moodle 3.11
+     *
+     * @todo MDL-71331 deprecate this function
+     * @param stdClass $course the course object
+     * @param int $section relative section number (field course_sections.section)
+     * @param int $sectionreturn The section to link back to
+     * @param array $displayoptions additional display options, for example blocks add
+     *     option 'inblock' => true, suggesting to display controls vertically
+     * @return string
+     */
+    private function course_section_add_cm_control_nonajax($course, $section, $sectionreturn = null,
+            $displayoptions = array()): string {
+        global $USER;
+
+        $vertical = !empty($displayoptions['inblock']);
+
+        // Check to see if user can add menus.
+        if (
+            !has_capability('moodle/course:manageactivities', context_course::instance($course->id))
+            || !$this->page->user_is_editing()
+        ) {
+            return '';
         }
 
-        // Behat only: If both controls are being included in the HTML,
-        // show the link by default and only fall back to the selects if js is disabled.
-        if ($behatsite && $renderajaxcontrol) {
-            $nonajaxcontrol = html_writer::tag('div', $nonajaxcontrol, array('class' => 'hiddenifjs addresourcedropdown'));
-            $ajaxcontrol = html_writer::tag('div', $ajaxcontrol, array('class' => 'visibleifjs addresourcemodchooser'));
+        debugging('non-js dropdowns are deprecated.', DEBUG_DEVELOPER);
+        // Retrieve all modules with associated metadata.
+        $contentitemservice = \core_course\local\factory\content_item_service_factory::get_content_item_service();
+        $urlparams = ['section' => $section];
+        if (!is_null($sectionreturn)) {
+            $urlparams['sr'] = $sectionreturn;
+        }
+        $modules = $contentitemservice->get_content_items_for_user_in_course($USER, $course, $urlparams);
+
+        // Return if there are no content items to add.
+        if (empty($modules)) {
+            return '';
         }
 
-        // If behat is running, we should have the non-ajax control + the ajax control.
-        // Otherwise, we'll have one or the other.
-        return $ajaxcontrol . $nonajaxcontrol;
+        // We'll sort resources and activities into two lists.
+        $activities = array(MOD_CLASS_ACTIVITY => array(), MOD_CLASS_RESOURCE => array());
+
+        foreach ($modules as $module) {
+            $activityclass = MOD_CLASS_ACTIVITY;
+            if ($module->archetype == MOD_ARCHETYPE_RESOURCE) {
+                $activityclass = MOD_CLASS_RESOURCE;
+            } else if ($module->archetype === MOD_ARCHETYPE_SYSTEM) {
+                // System modules cannot be added by user, do not add to dropdown.
+                continue;
+            }
+            $link = $module->link;
+            $activities[$activityclass][$link] = $module->title;
+        }
+
+        $straddactivity = get_string('addactivity');
+        $straddresource = get_string('addresource');
+        $sectionname = get_section_name($course, $section);
+        $strresourcelabel = get_string('addresourcetosection', null, $sectionname);
+        $stractivitylabel = get_string('addactivitytosection', null, $sectionname);
+
+        $nonajaxcontrol = html_writer::start_tag('div', array('class' => 'section_add_menus', 'id' => 'add_menus-section-'
+            . $section));
+
+        if (!$vertical) {
+            $nonajaxcontrol .= html_writer::start_tag('div', array('class' => 'horizontal'));
+        }
+
+        if (!empty($activities[MOD_CLASS_RESOURCE])) {
+            $select = new url_select($activities[MOD_CLASS_RESOURCE], '', array('' => $straddresource), "ressection$section");
+            $select->set_help_icon('resources');
+            $select->set_label($strresourcelabel, array('class' => 'accesshide'));
+            $nonajaxcontrol .= $this->output->render($select);
+        }
+
+        if (!empty($activities[MOD_CLASS_ACTIVITY])) {
+            $select = new url_select($activities[MOD_CLASS_ACTIVITY], '', array('' => $straddactivity), "section$section");
+            $select->set_help_icon('activities');
+            $select->set_label($stractivitylabel, array('class' => 'accesshide'));
+            $nonajaxcontrol .= $this->output->render($select);
+        }
+
+        if (!$vertical) {
+            $nonajaxcontrol .= html_writer::end_tag('div');
+        }
+
+        $nonajaxcontrol .= html_writer::end_tag('div');
+
+        return $nonajaxcontrol;
     }
 
     /**
@@ -425,6 +428,10 @@ class core_course_renderer extends plugin_renderer_base {
      * If completion is manual, returns a form (with an icon inside) that allows user to
      * toggle completion
      *
+     * @deprecated since Moodle 3.11
+     * @todo MDL-71183 Final deprecation in Moodle 4.3.
+     * @see \core_renderer::activity_information
+     *
      * @param stdClass $course course object
      * @param completion_info $completioninfo completion info for the course, it is recommended
      *     to fetch once for all modules in course/section for performance
@@ -434,6 +441,10 @@ class core_course_renderer extends plugin_renderer_base {
      */
     public function course_section_cm_completion($course, &$completioninfo, cm_info $mod, $displayoptions = array()) {
         global $CFG, $DB, $USER;
+
+        debugging(__FUNCTION__ . ' is deprecated and is being replaced by the activity_information output component.',
+            DEBUG_DEVELOPER);
+
         $output = '';
 
         $istrackeduser = $completioninfo->is_tracked_user($USER->id);
@@ -815,6 +826,8 @@ class core_course_renderer extends plugin_renderer_base {
     /**
      * Renders HTML to display one course module for display within a section.
      *
+     * @deprecated since 4.0 - use core_course output components or course_format::course_section_updated_cm_item instead.
+     *
      * This function calls:
      * {@link core_course_renderer::course_section_cm()}
      *
@@ -825,7 +838,11 @@ class core_course_renderer extends plugin_renderer_base {
      * @param array $displayoptions
      * @return String
      */
-    public function course_section_cm_list_item($course, &$completioninfo, cm_info $mod, $sectionreturn, $displayoptions = array()) {
+    public function course_section_cm_list_item($course, &$completioninfo, cm_info $mod, $sectionreturn, $displayoptions = []) {
+
+        debugging('course_section_cm_list_item is deprecated. Use course_format::course_section_updated_cm_item instead',
+                DEBUG_DEVELOPER);
+
         $output = '';
         if ($modulehtml = $this->course_section_cm($course, $completioninfo, $mod, $sectionreturn, $displayoptions)) {
             $modclasses = 'activity ' . $mod->modname . ' modtype_' . $mod->modname . ' ' . $mod->extraclasses;
@@ -840,13 +857,7 @@ class core_course_renderer extends plugin_renderer_base {
      * This includes link, content, availability, completion info and additional information
      * that module type wants to display (i.e. number of unread forum posts)
      *
-     * This function calls:
-     * {@link core_course_renderer::course_section_cm_name()}
-     * {@link core_course_renderer::course_section_cm_text()}
-     * {@link core_course_renderer::course_section_cm_availability()}
-     * {@link core_course_renderer::course_section_cm_completion()}
-     * {@link course_get_cm_edit_actions()}
-     * {@link core_course_renderer::course_section_cm_edit_actions()}
+     * @deprecated since 4.0 - use core_course output components instead.
      *
      * @param stdClass $course
      * @param completion_info $completioninfo
@@ -855,98 +866,27 @@ class core_course_renderer extends plugin_renderer_base {
      * @param array $displayoptions
      * @return string
      */
-    public function course_section_cm($course, &$completioninfo, cm_info $mod, $sectionreturn, $displayoptions = array()) {
-        $output = '';
-        // We return empty string (because course module will not be displayed at all)
-        // if:
-        // 1) The activity is not visible to users
-        // and
-        // 2) The 'availableinfo' is empty, i.e. the activity was
-        //     hidden in a way that leaves no info, such as using the
-        //     eye icon.
+    public function course_section_cm($course, &$completioninfo, cm_info $mod, $sectionreturn, $displayoptions = []) {
+
+        debugging('course_section_cm is deprecated. Use core_course\output\cm_format output classes instead.', DEBUG_DEVELOPER);
+
         if (!$mod->is_visible_on_course_page()) {
-            return $output;
+            return '';
         }
 
-        $indentclasses = 'mod-indent';
-        if (!empty($mod->indent)) {
-            $indentclasses .= ' mod-indent-'.$mod->indent;
-            if ($mod->indent > 15) {
-                $indentclasses .= ' mod-indent-huge';
-            }
+        $format = course_get_format($course);
+        $modinfo = $format->get_modinfo();
+        // Output renderers works only with real section_info objects.
+        if ($sectionreturn) {
+            $format->set_section_number($sectionreturn);
         }
+        $section = $modinfo->get_section_info($format->get_section_number());
 
-        $output .= html_writer::start_tag('div');
-
-        if ($this->page->user_is_editing()) {
-            $output .= course_get_cm_move($mod, $sectionreturn);
-        }
-
-        $output .= html_writer::start_tag('div', array('class' => 'mod-indent-outer w-100'));
-
-        // This div is used to indent the content.
-        $output .= html_writer::div('', $indentclasses);
-
-        // Start a wrapper for the actual content to keep the indentation consistent
-        $output .= html_writer::start_tag('div');
-
-        // Display the link to the module (or do nothing if module has no url)
-        $cmname = $this->course_section_cm_name($mod, $displayoptions);
-
-        if (!empty($cmname)) {
-            // Start the div for the activity title, excluding the edit icons.
-            $output .= html_writer::start_tag('div', array('class' => 'activityinstance'));
-            $output .= $cmname;
-
-
-            // Module can put text after the link (e.g. forum unread)
-            $output .= $mod->afterlink;
-
-            // Closing the tag which contains everything but edit icons. Content part of the module should not be part of this.
-            $output .= html_writer::end_tag('div'); // .activityinstance
-        }
-
-        // If there is content but NO link (eg label), then display the
-        // content here (BEFORE any icons). In this case cons must be
-        // displayed after the content so that it makes more sense visually
-        // and for accessibility reasons, e.g. if you have a one-line label
-        // it should work similarly (at least in terms of ordering) to an
-        // activity.
-        $contentpart = $this->course_section_cm_text($mod, $displayoptions);
-        $url = $mod->url;
-        if (empty($url)) {
-            $output .= $contentpart;
-        }
-
-        $modicons = '';
-        if ($this->page->user_is_editing()) {
-            $editactions = course_get_cm_edit_actions($mod, $mod->indent, $sectionreturn);
-            $modicons .= ' '. $this->course_section_cm_edit_actions($editactions, $mod, $displayoptions);
-            $modicons .= $mod->afterediticons;
-        }
-
-        $modicons .= $this->course_section_cm_completion($course, $completioninfo, $mod, $displayoptions);
-
-        if (!empty($modicons)) {
-            $output .= html_writer::div($modicons, 'actions');
-        }
-
-        // Show availability info (if module is not available).
-        $output .= $this->course_section_cm_availability($mod, $displayoptions);
-
-        // If there is content AND a link, then display the content here
-        // (AFTER any icons). Otherwise it was displayed before
-        if (!empty($url)) {
-            $output .= $contentpart;
-        }
-
-        $output .= html_writer::end_tag('div'); // $indentclasses
-
-        // End of indentation div.
-        $output .= html_writer::end_tag('div');
-
-        $output .= html_writer::end_tag('div');
-        return $output;
+        $cmclass = $format->get_output_classname('cm_format');
+        $cm = new $cmclass($format, $section, $mod, $displayoptions);
+        // The course outputs works with format renderers, not with course renderers.
+        $renderer = $format->get_renderer($this->page);
+        return $renderer->render($cm);
     }
 
     /**
@@ -979,7 +919,9 @@ class core_course_renderer extends plugin_renderer_base {
 
     /**
      * Renders HTML to display a list of course modules in a course section
-     * Also displays "move here" controls in Javascript-disabled mode
+     * Also displays "move here" controls in Javascript-disabled mode.
+     *
+     * @deprecated since 4.0 - use core_course output components instead.
      *
      * This function calls {@link core_course_renderer::course_section_cm()}
      *
@@ -989,11 +931,17 @@ class core_course_renderer extends plugin_renderer_base {
      * @param int $displayoptions
      * @return void
      */
-    public function course_section_cm_list($course, $section, $sectionreturn = null, $displayoptions = array()) {
+    public function course_section_cm_list($course, $section, $sectionreturn = null, $displayoptions = []) {
         global $USER;
 
+        debugging('course_section_cm_list is deprecated. Use core_course\\output\\section_format\\cmlist '.
+                'classes instead.', DEBUG_DEVELOPER);
+
         $output = '';
-        $modinfo = get_fast_modinfo($course);
+
+        $format = course_get_format($course);
+        $modinfo = $format->get_modinfo();
+
         if (is_object($section)) {
             $section = $modinfo->get_section_info($section->section);
         } else {
@@ -1002,13 +950,14 @@ class core_course_renderer extends plugin_renderer_base {
         $completioninfo = new completion_info($course);
 
         // check if we are currently in the process of moving a module with JavaScript disabled
-        $ismoving = $this->page->user_is_editing() && ismoving($course->id);
+        $ismoving = $format->show_editor() && ismoving($course->id);
+
         if ($ismoving) {
             $strmovefull = strip_tags(get_string("movefull", "", "'$USER->activitycopyname'"));
         }
 
         // Get the list of modules visible to user (excluding the module being moved if there is one)
-        $moduleshtml = array();
+        $moduleshtml = [];
         if (!empty($modinfo->sections[$section->section])) {
             foreach ($modinfo->sections[$section->section] as $modnumber) {
                 $mod = $modinfo->cms[$modnumber];
@@ -1031,8 +980,8 @@ class core_course_renderer extends plugin_renderer_base {
                 if ($ismoving) {
                     $movingurl = new moodle_url('/course/mod.php', array('moveto' => $modnumber, 'sesskey' => sesskey()));
                     $sectionoutput .= html_writer::tag('li',
-                            html_writer::link($movingurl, '', array('title' => $strmovefull, 'class' => 'movehere')),
-                            array('class' => 'movehere'));
+                        html_writer::link($movingurl, '', array('title' => $strmovefull, 'class' => 'movehere')),
+                        array('class' => 'movehere'));
                 }
 
                 $sectionoutput .= $modulehtml;
@@ -1041,8 +990,8 @@ class core_course_renderer extends plugin_renderer_base {
             if ($ismoving) {
                 $movingurl = new moodle_url('/course/mod.php', array('movetosection' => $section->id, 'sesskey' => sesskey()));
                 $sectionoutput .= html_writer::tag('li',
-                        html_writer::link($movingurl, '', array('title' => $strmovefull, 'class' => 'movehere')),
-                        array('class' => 'movehere'));
+                    html_writer::link($movingurl, '', array('title' => $strmovefull, 'class' => 'movehere')),
+                    array('class' => 'movehere'));
             }
         }
 
@@ -2189,6 +2138,19 @@ class core_course_renderer extends plugin_renderer_base {
     }
 
     /**
+     * Renders the activity information.
+     *
+     * Defer to template.
+     *
+     * @param \core_course\output\activity_information $page
+     * @return string html for the page
+     */
+    public function render_activity_information(\core_course\output\activity_information $page) {
+        $data = $page->export_for_template($this->output);
+        return $this->output->render_from_template('core_course/activity_info', $data);
+    }
+
+    /**
      * Renders the activity navigation.
      *
      * Defer to template.
@@ -2256,52 +2218,17 @@ class core_course_renderer extends plugin_renderer_base {
 
         $modinfo = get_fast_modinfo($SITE);
         $section = $modinfo->get_section_info(1);
+
+
         if (($section && (!empty($modinfo->sections[1]) or !empty($section->summary))) or $editing) {
-            $output .= $this->box_start('generalbox sitetopic');
 
-            // If currently moving a file then show the current clipboard.
-            if (ismoving($SITE->id)) {
-                $stractivityclipboard = strip_tags(get_string('activityclipboard', '', $USER->activitycopyname));
-                $output .= '<p><font size="2">';
-                $cancelcopyurl = new moodle_url('/course/mod.php', ['cancelcopy' => 'true', 'sesskey' => sesskey()]);
-                $output .= "$stractivityclipboard&nbsp;&nbsp;(" . html_writer::link($cancelcopyurl, get_string('cancel')) .')';
-                $output .= '</font></p>';
-            }
+            $format = course_get_format($SITE);
+            $frontpageclass = $format->get_output_classname('course_format\\frontpagesection');
+            $frontpagesection = new $frontpageclass($format, $section);
 
-            $context = context_course::instance(SITEID);
-
-            // If the section name is set we show it.
-            if (trim($section->name) !== '') {
-                $output .= $this->heading(
-                    format_string($section->name, true, array('context' => $context)),
-                    2,
-                    'sectionname'
-                );
-            }
-
-            $summarytext = file_rewrite_pluginfile_urls($section->summary,
-                'pluginfile.php',
-                $context->id,
-                'course',
-                'section',
-                $section->id);
-            $summaryformatoptions = new stdClass();
-            $summaryformatoptions->noclean = true;
-            $summaryformatoptions->overflowdiv = true;
-
-            $output .= format_text($summarytext, $section->summaryformat, $summaryformatoptions);
-
-            if ($editing && has_capability('moodle/course:update', $context)) {
-                $streditsummary = get_string('editsummary');
-                $editsectionurl = new moodle_url('/course/editsection.php', ['id' => $section->id]);
-                $output .= html_writer::link($editsectionurl, $this->pix_icon('t/edit', $streditsummary)) .
-                    "<br /><br />";
-            }
-
-            $output .= $this->course_section_cm_list($SITE, $section);
-
-            $output .= $this->course_section_add_cm_control($SITE, $section->section);
-            $output .= $this->box_end();
+            // The course outputs works with format renderers, not with course renderers.
+            $renderer = $format->get_renderer($this->page);
+            $output .= $renderer->render($frontpagesection);
         }
 
         return $output;

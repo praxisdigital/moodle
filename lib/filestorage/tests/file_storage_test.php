@@ -86,7 +86,7 @@ class core_files_file_storage_testcase extends advanced_testcase {
         // Tests that missing content file is recreated.
 
         unlink($location);
-        $this->assertFileNotExists($location);
+        $this->assertFileDoesNotExist($location);
 
         $filerecord['filename'] = 'testfile2.txt';
         $file2 = $fs->create_file_from_string($filerecord, $content);
@@ -158,7 +158,7 @@ class core_files_file_storage_testcase extends advanced_testcase {
         // Tests that missing content file is recreated.
 
         unlink($location);
-        $this->assertFileNotExists($location);
+        $this->assertFileDoesNotExist($location);
 
         $filerecord['filename'] = 'testfile2.jpg';
         $file2 = $fs->create_file_from_pathname($filerecord, $filepath);
@@ -324,7 +324,7 @@ class core_files_file_storage_testcase extends advanced_testcase {
 
         // Try break it.
         $this->expectException('file_exception');
-        $this->expectExceptionMessage('Can not create file "1/core/unittest/0/test/newtest.txt" (file exists, cannot rename)');
+        $this->expectExceptionMessage('Cannot create file 1/core/unittest/0/test/newtest.txt (file exists, cannot rename)');
         // This shall throw exception.
         $originalfile->rename($newpath, $newname);
     }
@@ -393,7 +393,7 @@ class core_files_file_storage_testcase extends advanced_testcase {
         $this->assertEquals($userrepository->id, $newstoredfile->get_repository_id());
         $this->assertEquals($originalfile->get_contenthash(), $newstoredfile->get_contenthash());
         $this->assertEquals($originalfile->get_filesize(), $newstoredfile->get_filesize());
-        $this->assertRegExp('#' . $filename. '$#', $newstoredfile->get_reference_details());
+        $this->assertMatchesRegularExpression('#' . $filename. '$#', $newstoredfile->get_reference_details());
 
         // Test looking for references.
         $count = $fs->get_references_count_by_storedfile($originalfile);
@@ -485,7 +485,7 @@ class core_files_file_storage_testcase extends advanced_testcase {
         $this->assertEquals($userrepository->id, $newstoredfile->get_repository_id());
         $this->assertEquals($originalfile->get_contenthash(), $newstoredfile->get_contenthash());
         $this->assertEquals($originalfile->get_filesize(), $newstoredfile->get_filesize());
-        $this->assertRegExp('#' . $filename . '$#', $newstoredfile->get_reference_details());
+        $this->assertMatchesRegularExpression('#' . $filename . '$#', $newstoredfile->get_reference_details());
     }
 
     private function setup_three_private_files() {
@@ -1478,7 +1478,7 @@ class core_files_file_storage_testcase extends advanced_testcase {
 
         // Creating a file validating unique constraint.
         $this->expectException(stored_file_creation_exception::class);
-        $this->expectExceptionMessage('Can not create file "1/core/phpunit/0/testfile.txt"');
+        $this->expectExceptionMessage('Cannot create file 1/core/phpunit/0/testfile.txt');
         $fs->create_file_from_storedfile($filerecord, $file1->get_id());
     }
 
@@ -1835,7 +1835,7 @@ class core_files_file_storage_testcase extends advanced_testcase {
 
         // Creating a file validating unique constraint.
         $this->expectException(stored_file_creation_exception::class);
-        $this->expectExceptionMessage('Can not create file "1/core/phpunit/0/testfile.txt"');
+        $this->expectExceptionMessage('Cannot create file 1/core/phpunit/0/testfile.txt');
         $file2 = $fs->create_file_from_pathname($filerecord, $path);
     }
 

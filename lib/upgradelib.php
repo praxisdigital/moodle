@@ -456,6 +456,12 @@ function upgrade_stale_php_files_present() {
     global $CFG;
 
     $someexamplesofremovedfiles = array(
+        // Removed in 3.11.
+        '/customfield/edit.php',
+        '/lib/phpunit/classes/autoloader.php',
+        '/lib/xhprof/README',
+        '/message/defaultoutputs.php',
+        '/user/files_form.php',
         // Removed in 3.10.
         '/grade/grading/classes/privacy/gradingform_provider.php',
         '/lib/coursecatlib.php',
@@ -1211,6 +1217,7 @@ function external_update_descriptions($component) {
         $function = $functions[$dbfunction->name];
         unset($functions[$dbfunction->name]);
         $function['classpath'] = empty($function['classpath']) ? null : $function['classpath'];
+        $function['methodname'] = $function['methodname'] ?? 'execute';
 
         $update = false;
         if ($dbfunction->classname != $function['classname']) {
@@ -1260,7 +1267,7 @@ function external_update_descriptions($component) {
         $dbfunction = new stdClass();
         $dbfunction->name       = $fname;
         $dbfunction->classname  = $function['classname'];
-        $dbfunction->methodname = $function['methodname'];
+        $dbfunction->methodname = $function['methodname'] ?? 'execute';
         $dbfunction->classpath  = empty($function['classpath']) ? null : $function['classpath'];
         $dbfunction->component  = $component;
         $dbfunction->capabilities = array_key_exists('capabilities', $function)?$function['capabilities']:'';
@@ -2615,5 +2622,29 @@ function check_libcurl_version(environment_results $result) {
         return $result;
     }
 
+    return null;
+}
+
+/**
+ * Environment check for the php setting max_input_vars
+ *
+ * @param environment_results $result
+ * @return environment_results|null
+ */
+function check_max_input_vars(environment_results $result) {
+    $max = (int)ini_get('max_input_vars');
+    if ($max < 5000) {
+        $result->setInfo('max_input_vars');
+        $result->setStatus(false);
+        if (PHP_VERSION_ID >= 80000) {
+            // For PHP8 this check is required.
+            $result->setLevel('required');
+            $result->setFeedbackStr('settingmaxinputvarsrequired');
+        } else {
+            // For PHP7 this check is optional (recommended).
+            $result->setFeedbackStr('settingmaxinputvars');
+        }
+        return $result;
+    }
     return null;
 }

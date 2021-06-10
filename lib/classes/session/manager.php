@@ -138,7 +138,7 @@ class manager {
             self::$sessionactive = true; // Set here, so the session can be cleared if the security check fails.
             self::check_security();
 
-            if (!$requireslock || $CFG->debugdeveloper || isset($CFG->enable_read_only_sessions_debug)) {
+            if (!$requireslock || isset($CFG->enable_read_only_sessions_debug)) {
                 self::$priorsession = (array) $_SESSION['SESSION'];
             }
             if (!empty($CFG->enable_read_only_sessions) && isset($_SESSION['SESSION']->cachestore_session)) {
@@ -705,7 +705,7 @@ class manager {
             self::sessionlock_debugging();
 
             $requireslock = self::$handler->requires_write_lock();
-            if (!$requireslock || $CFG->debugdeveloper || isset($CFG->enable_read_only_sessions_debug)) {
+            if (!$requireslock || isset($CFG->enable_read_only_sessions_debug)) {
                 // Compare the array of the earlier session data with the array now, if
                 // there is a difference then a lock is required.
                 $arraydiff = self::array_session_diff(
@@ -973,12 +973,12 @@ class manager {
             $rs->close();
 
             // Kill sessions of users with disabled plugins.
-            $auth_sequence = get_enabled_auth_plugins(true);
-            $auth_sequence = array_flip($auth_sequence);
-            unset($auth_sequence['nologin']); // No login means user cannot login.
-            $auth_sequence = array_flip($auth_sequence);
+            $authsequence = get_enabled_auth_plugins();
+            $authsequence = array_flip($authsequence);
+            unset($authsequence['nologin']); // No login means user cannot login.
+            $authsequence = array_flip($authsequence);
 
-            list($notplugins, $params) = $DB->get_in_or_equal($auth_sequence, SQL_PARAMS_QM, '', false);
+            list($notplugins, $params) = $DB->get_in_or_equal($authsequence, SQL_PARAMS_QM, '', false);
             $rs = $DB->get_recordset_select('sessions', "userid IN (SELECT id FROM {user} WHERE auth $notplugins)", $params, 'id DESC', 'id, sid');
             foreach ($rs as $session) {
                 self::kill_session($session->sid);
@@ -993,7 +993,7 @@ class manager {
             $params = array('purgebefore' => (time() - $maxlifetime), 'guestid'=>$CFG->siteguest);
 
             $authplugins = array();
-            foreach ($auth_sequence as $authname) {
+            foreach ($authsequence as $authname) {
                 $authplugins[$authname] = get_auth_plugin($authname);
             }
             $rs = $DB->get_recordset_sql($sql, $params);

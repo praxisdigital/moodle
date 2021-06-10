@@ -300,12 +300,8 @@ class admin_uploaduser_form2 extends moodleform {
         $mform->addHelpButton('description', 'userdescription');
         $mform->setAdvanced('description');
 
-        $mform->addElement('text', 'url', get_string('webpage'), 'maxlength="255" size="50"');
-        $mform->setType('url', PARAM_URL);
-        $mform->setAdvanced('url');
-
         $mform->addElement('text', 'idnumber', get_string('idnumber'), 'maxlength="255" size="25"');
-        $mform->setType('idnumber', PARAM_NOTAGS);
+        $mform->setType('idnumber', core_user::get_property_type('idnumber'));
         $mform->setForceLtr('idnumber');
 
         $mform->addElement('text', 'institution', get_string('institution'), 'maxlength="255" size="25"');

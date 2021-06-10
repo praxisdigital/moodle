@@ -57,7 +57,7 @@ class grade_edit_tree {
     /**
      * Constructor
      */
-    public function __construct($gtree, $moving=false, $gpr) {
+    public function __construct($gtree, $moving, $gpr) {
         global $USER, $OUTPUT, $COURSE;
 
         $systemdefault = get_config('moodle', 'grade_report_showcalculations');
@@ -676,7 +676,9 @@ class grade_edit_tree {
 
         $gradeitem->outcomeid = null;
 
+        // This means we want to rescale overridden grades as well.
         if (!empty($data->grade_item_rescalegrades) && $data->grade_item_rescalegrades == 'yes') {
+            $gradeitem->markasoverriddenwhengraded = false;
             $gradeitem->rescale_grades_keep_percentage($gradeitemcopy->grademin, $gradeitemcopy->grademax,
                 $gradeitem->grademin, $gradeitem->grademax, 'gradebook');
         }

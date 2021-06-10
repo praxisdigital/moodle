@@ -35,6 +35,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core_completion\cm_completion_details;
+use core_course\output\activity_information;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -897,6 +900,25 @@ class core_renderer extends renderer_base {
         // DO NOT add classes.
         // DO NOT add an id.
         return '<div role="main">'.$this->unique_main_content_token.'</div>';
+    }
+
+    /**
+     * Returns information about an activity.
+     *
+     * @param cm_info $cminfo The course module information.
+     * @param cm_completion_details $completiondetails The completion details for this activity module.
+     * @param array $activitydates The dates for this activity module.
+     * @return string the activity information HTML.
+     * @throws coding_exception
+     */
+    public function activity_information(cm_info $cminfo, cm_completion_details $completiondetails, array $activitydates): string {
+        if (!$completiondetails->has_completion() && empty($activitydates)) {
+            // No need to render the activity information when there's no completion info and activity dates to show.
+            return '';
+        }
+        $activityinfo = new activity_information($cminfo, $completiondetails, $activitydates);
+        $renderer = $this->page->get_renderer('core', 'course');
+        return $renderer->render($activityinfo);
     }
 
     /**
@@ -2523,19 +2545,14 @@ class core_renderer extends renderer_base {
      * @return string
      */
     protected function render_user_picture(user_picture $userpicture) {
-        global $CFG, $DB;
-
         $user = $userpicture->user;
         $canviewfullnames = has_capability('moodle/site:viewfullnames', $this->page->context);
 
+        $alt = '';
         if ($userpicture->alttext) {
             if (!empty($user->imagealt)) {
                 $alt = $user->imagealt;
-            } else {
-                $alt = get_string('pictureof', '', fullname($user, $canviewfullnames));
             }
-        } else {
-            $alt = '';
         }
 
         if (empty($userpicture->size)) {
@@ -2557,11 +2574,10 @@ class core_renderer extends renderer_base {
         $attributes = array('src' => $src, 'class' => $class, 'width' => $size, 'height' => $size);
         if (!$userpicture->visibletoscreenreaders) {
             $alt = '';
-            $attributes['aria-hidden'] = 'true';
         }
+        $attributes['alt'] = $alt;
 
         if (!empty($alt)) {
-            $attributes['alt'] = $alt;
             $attributes['title'] = $alt;
         }
 
@@ -2573,21 +2589,21 @@ class core_renderer extends renderer_base {
             $output .= fullname($userpicture->user, $canviewfullnames);
         }
 
-        // then wrap it in link if needed
-        if (!$userpicture->link) {
-            return $output;
-        }
-
         if (empty($userpicture->courseid)) {
             $courseid = $this->page->course->id;
         } else {
             $courseid = $userpicture->courseid;
         }
-
         if ($courseid == SITEID) {
             $url = new moodle_url('/user/profile.php', array('id' => $user->id));
         } else {
             $url = new moodle_url('/user/view.php', array('id' => $user->id, 'course' => $courseid));
+        }
+
+        // Then wrap it in link if needed. Also we don't wrap it in link if the link redirects to itself.
+        if (!$userpicture->link ||
+                ($this->page->has_set_url() && $this->page->url == $url)) { // Protect against unset page->url.
+            return $output;
         }
 
         $attributes = array('href' => $url, 'class' => 'd-inline-block aabtn');
@@ -4136,15 +4152,11 @@ EOD;
         $subheader = null;
         $userbuttons = null;
 
-        if ($this->should_display_main_logo($headinglevel)) {
-            $sitename = format_string($SITE->fullname, true, array('context' => context_course::instance(SITEID)));
-            return html_writer::div(html_writer::empty_tag('img', [
-                    'src' => $this->get_logo_url(null, 150), 'alt' => $sitename, 'class' => 'img-fluid']), 'logo');
-        }
-
         // Make sure to use the heading if it has been set.
         if (isset($headerinfo['heading'])) {
             $heading = $headerinfo['heading'];
+        } else {
+            $heading = $this->page->heading;
         }
 
         // The user context currently has images and buttons. Other contexts may follow.
@@ -4169,7 +4181,7 @@ EOD;
 
             if (user_can_view_profile($user, $course)) {
                 // Use the user's full name if the heading isn't set.
-                if (!isset($heading)) {
+                if (empty($heading)) {
                     $heading = fullname($user);
                 }
 
@@ -4215,6 +4227,26 @@ EOD;
             }
         }
 
+        if ($this->should_display_main_logo($headinglevel)) {
+            $sitename = format_string($SITE->fullname, true, ['context' => context_course::instance(SITEID)]);
+            // Logo.
+            $html = html_writer::div(
+                html_writer::empty_tag('img', [
+                    'src' => $this->get_logo_url(null, 150),
+                    'alt' => get_string('logoof', '', $sitename),
+                    'class' => 'img-fluid'
+                ]),
+                'logo'
+            );
+            // Heading.
+            if (!isset($heading)) {
+                $html .= $this->heading($this->page->heading, $headinglevel, 'sr-only');
+            } else {
+                $html .= $this->heading($heading, $headinglevel, 'sr-only');
+            }
+            return $html;
+        }
+
         $contextheader = new context_header($heading, $headinglevel, $imagedata, $userbuttons);
         return $this->render_context_header($contextheader);
     }
@@ -4243,9 +4275,17 @@ EOD;
       */
     protected function render_context_header(context_header $contextheader) {
 
+        // Generate the heading first and before everything else as we might have to do an early return.
+        if (!isset($contextheader->heading)) {
+            $heading = $this->heading($this->page->heading, $contextheader->headinglevel);
+        } else {
+            $heading = $this->heading($contextheader->heading, $contextheader->headinglevel);
+        }
+
         $showheader = empty($this->page->layout_options['nocontextheader']);
         if (!$showheader) {
-            return '';
+            // Return the heading wrapped in an sr-only element so it is only visible to screen-readers.
+            return html_writer::div($heading, 'sr-only');
         }
 
         // All the html stuff goes here.
@@ -4258,13 +4298,7 @@ EOD;
         }
 
         // Headings.
-        if (!isset($contextheader->heading)) {
-            $headings = $this->heading($this->page->heading, $contextheader->headinglevel);
-        } else {
-            $headings = $this->heading($contextheader->heading, $contextheader->headinglevel);
-        }
-
-        $html .= html_writer::tag('div', $headings, array('class' => 'page-header-headings'));
+        $html .= html_writer::tag('div', $heading, array('class' => 'page-header-headings'));
 
         // Buttons.
         if (isset($contextheader->additionalbuttons)) {
@@ -4777,6 +4811,22 @@ EOD;
     }
 
     /**
+     * Renders an update to a progress bar.
+     *
+     * Note: This does not cleanly map to a renderable class and should
+     * never be used directly.
+     *
+     * @param  string $id
+     * @param  float $percent
+     * @param  string $msg Message
+     * @param  string $estimate time remaining message
+     * @return string ascii fragment
+     */
+    public function render_progress_bar_update(string $id, float $percent, string $msg, string $estimate) : string {
+        return html_writer::script(js_writer::function_call('updateProgressBar', [$id, $percent, $msg, $estimate]));
+    }
+
+    /**
      * Renders element for a toggle-all checkbox.
      *
      * @param \core\output\checkbox_toggleall $element
@@ -4799,6 +4849,12 @@ EOD;
  * @category output
  */
 class core_renderer_cli extends core_renderer {
+
+    /**
+     * @var array $progressmaximums stores the largest percentage for a progress bar.
+     * @return string ascii fragment
+     */
+    private $progressmaximums = [];
 
     /**
      * Returns the page header.
@@ -4842,6 +4898,96 @@ class core_renderer_cli extends core_renderer {
      */
     public function check_result(core\check\result $result) {
         return $this->render_check_result($result);
+    }
+
+    /**
+     * Renders a progress bar.
+     *
+     * Do not use $OUTPUT->render($bar), instead use progress_bar::create().
+     *
+     * @param  progress_bar $bar The bar.
+     * @return string ascii fragment
+     */
+    public function render_progress_bar(progress_bar $bar) {
+        global $CFG;
+
+        $size = 55; // The width of the progress bar in chars.
+        $ascii = "\n";
+
+        if (stream_isatty(STDOUT)) {
+            require_once($CFG->libdir.'/clilib.php');
+
+            $ascii .= "[" . str_repeat(' ', $size) . "] 0% \n";
+            return cli_ansi_format($ascii);
+        }
+
+        $this->progressmaximums[$bar->get_id()] = 0;
+        $ascii .= '[';
+        return $ascii;
+    }
+
+    /**
+     * Renders an update to a progress bar.
+     *
+     * Note: This does not cleanly map to a renderable class and should
+     * never be used directly.
+     *
+     * @param  string $id
+     * @param  float $percent
+     * @param  string $msg Message
+     * @param  string $estimate time remaining message
+     * @return string ascii fragment
+     */
+    public function render_progress_bar_update(string $id, float $percent, string $msg, string $estimate) : string {
+        $size = 55; // The width of the progress bar in chars.
+        $ascii = '';
+
+        // If we are rendering to a terminal then we can safely use ansii codes
+        // to move the cursor and redraw the complete progress bar each time
+        // it is updated.
+        if (stream_isatty(STDOUT)) {
+            $colour = $percent == 100 ? 'green' : 'blue';
+
+            $done = $percent * $size * 0.01;
+            $whole = floor($done);
+            $bar = "<colour:$colour>";
+            $bar .= str_repeat('█', $whole);
+
+            if ($whole < $size) {
+                // By using unicode chars for partial blocks we can have higher
+                // precision progress bar.
+                $fraction = floor(($done - $whole) * 8);
+                $bar .= core_text::substr(' ▏▎▍▌▋▊▉', $fraction, 1);
+
+                // Fill the rest of the empty bar.
+                $bar .= str_repeat(' ', $size - $whole - 1);
+            }
+
+            $bar .= '<colour:normal>';
+
+            if ($estimate) {
+                $estimate = "- $estimate";
+            }
+
+            $ascii .= '<cursor:up>';
+            $ascii .= '<cursor:up>';
+            $ascii .= sprintf("[$bar] %3.1f%% %-22s\n", $percent, $estimate);
+            $ascii .= sprintf("%-80s\n", $msg);
+            return cli_ansi_format($ascii);
+        }
+
+        // If we are not rendering to a tty, ie when piped to another command
+        // or on windows we need to progressively render the progress bar
+        // which can only ever go forwards.
+        $done = round($percent * $size * 0.01);
+        $delta = max(0, $done - $this->progressmaximums[$id]);
+
+        $ascii .= str_repeat('#', $delta);
+        if ($percent >= 100 && $delta > 0) {
+            $ascii .= sprintf("] %3.1f%%\n$msg\n", $percent);
+        }
+        $this->progressmaximums[$id] += $delta;
+        return $ascii;
     }
 
     /**

@@ -63,6 +63,7 @@ $string['chat:readlog'] = 'View chat logs';
 $string['chatreport'] = 'Chat sessions';
 $string['chat:talk'] = 'Talk in a chat';
 $string['chattime'] = 'Next chat time';
+$string['nextchattime'] = 'Next chat time:';
 $string['chat:view'] = 'View chat activity';
 $string['entermessage'] = "Enter your message";
 $string['eventmessagesent'] = 'Message sent';
@@ -109,7 +110,6 @@ Chats are especially useful when the group chatting is not able to meet face-to-
 $string['modulename_link'] = 'mod/chat/view';
 $string['modulenameplural'] = 'Chats';
 $string['neverdeletemessages'] = 'Never delete messages';
-$string['nextsession'] = 'Next scheduled session';
 $string['no_complete_sessions_found'] = 'No complete sessions found.';
 $string['noguests'] = 'The chat is not open to guests';
 $string['nochat'] = 'No chat found';
@@ -157,7 +157,7 @@ $string['serverip'] = 'Server ip';
 $string['servermax'] = 'Max users';
 $string['serverport'] = 'Server port';
 $string['sessions'] = 'Chat sessions';
-$string['sessionstart'] = 'The next chat session will start on {$a->date}, ({$a->fromnow} from now)';
+$string['sessionstartsin'] = 'The next chat session will start {$a} from now.';
 $string['strftimemessage'] = '%H:%M';
 $string['studentseereports'] = 'Everyone can view past sessions';
 $string['studentseereports_help'] = 'If set to No, only users have mod/chat:readlog capability are able to see the chat logs';
@@ -174,3 +174,9 @@ $string['usingchat_help'] = 'The chat module contains some features to make chat
 * Beeps - You can send a sound to other participants by clicking the "beep" link next to their name. A useful shortcut to beep all the people in the chat at once is to type "beep all".
 * HTML - If you know some HTML code, you can use it in your text to do things like insert images, play sounds or create different coloured text';
 $string['viewreport'] = 'View past chat sessions';
+
+// Deprecated since Moodle 3.11.
+$string['sessionstart'] = 'The next chat session will start on {$a->date}, ({$a->fromnow} from now)';
+
+// Deprecated since Moodle 4.0.
+$string['nextsession'] = 'Next scheduled session';

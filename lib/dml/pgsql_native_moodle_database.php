@@ -192,7 +192,7 @@ class pgsql_native_moodle_database extends moodle_database {
         $dberr = ob_get_contents();
         ob_end_clean();
 
-        $status = pg_connection_status($this->pgsql);
+        $status = $this->pgsql ? pg_connection_status($this->pgsql) : false;
 
         if ($status === false or $status === PGSQL_CONNECTION_BAD) {
             $this->pgsql = null;
@@ -1450,6 +1450,19 @@ class pgsql_native_moodle_database extends moodle_database {
             return " '' ";
         }
         return " $s ";
+    }
+
+    /**
+     * Return SQL for performing group concatenation on given field/expression
+     *
+     * @param string $field
+     * @param string $separator
+     * @param string $sort
+     * @return string
+     */
+    public function sql_group_concat(string $field, string $separator = ', ', string $sort = ''): string {
+        $fieldsort = $sort ? "ORDER BY {$sort}" : '';
+        return "STRING_AGG(CAST({$field} AS VARCHAR), '{$separator}' {$fieldsort})";
     }
 
     public function sql_regex_supported() {

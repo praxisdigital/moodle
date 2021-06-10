@@ -611,6 +611,81 @@ class core_enrol_externallib_testcase extends externallib_advanced_testcase {
     }
 
     /**
+     * Test that get_users_courses respects the capability to view participants when viewing courses of other user
+     */
+    public function test_get_users_courses_can_view_participants(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $context = context_course::instance($course->id);
+
+        $user1 = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $user2 = $this->getDataGenerator()->create_and_enrol($course, 'student');
+
+        $this->setUser($user1);
+
+        $courses = core_enrol_external::clean_returnvalue(
+            core_enrol_external::get_users_courses_returns(),
+            core_enrol_external::get_users_courses($user2->id, false)
+        );
+
+        $this->assertCount(1, $courses);
+        $this->assertEquals($course->id, reset($courses)['id']);
+
+        // Prohibit the capability for viewing course participants.
+        $studentrole = $DB->get_field('role', 'id', ['shortname' => 'student']);
+        assign_capability('moodle/course:viewparticipants', CAP_PROHIBIT, $studentrole, $context->id);
+
+        $courses = core_enrol_external::clean_returnvalue(
+            core_enrol_external::get_users_courses_returns(),
+            core_enrol_external::get_users_courses($user2->id, false)
+        );
+        $this->assertEmpty($courses);
+    }
+
+    /*
+     * Test that get_users_courses respects the capability to view a users profile when viewing courses of other user
+     */
+    public function test_get_users_courses_can_view_profile(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course([
+            'groupmode' => VISIBLEGROUPS,
+        ]);
+
+        $user1 = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $user2 = $this->getDataGenerator()->create_and_enrol($course, 'student');
+
+        // Create separate groups for each of our students.
+        $group1 = $this->getDataGenerator()->create_group(['courseid' => $course->id]);
+        groups_add_member($group1, $user1);
+        $group2 = $this->getDataGenerator()->create_group(['courseid' => $course->id]);
+        groups_add_member($group2, $user2);
+
+        $this->setUser($user1);
+
+        $courses = core_enrol_external::clean_returnvalue(
+            core_enrol_external::get_users_courses_returns(),
+            core_enrol_external::get_users_courses($user2->id, false)
+        );
+
+        $this->assertCount(1, $courses);
+        $this->assertEquals($course->id, reset($courses)['id']);
+
+        // Change to separate groups mode, so students can't view information about each other in different groups.
+        $course->groupmode = SEPARATEGROUPS;
+        update_course($course);
+
+        $courses = core_enrol_external::clean_returnvalue(
+            core_enrol_external::get_users_courses_returns(),
+            core_enrol_external::get_users_courses($user2->id, false)
+        );
+        $this->assertEmpty($courses);
+    }
+
+    /**
      * Test get_users_courses with mathjax in the name.
      */
     public function test_get_users_courses_with_mathjax() {
@@ -1400,5 +1475,80 @@ class core_enrol_externallib_testcase extends externallib_advanced_testcase {
         // Search for invalid first name.
         $result = core_enrol_external::search_users($course1->id, 'yada yada', true, 0, 30);
         $this->assertCount(0, $result);
+    }
+
+    /**
+     * Tests the get_potential_users external function (not too much detail because the back-end
+     * is covered in another test).
+     */
+    public function test_get_potential_users(): void {
+        $this->resetAfterTest();
+
+        // Create a couple of custom profile fields, one of which is in user identity.
+        $generator = $this->getDataGenerator();
+        $generator->create_custom_profile_field(['datatype' => 'text',
+                'shortname' => 'researchtopic', 'name' => 'Research topic']);
+        $generator->create_custom_profile_field(['datatype' => 'text',
+                'shortname' => 'specialid', 'name' => 'Special id']);
+        set_config('showuseridentity', 'department,profile_field_specialid');
+
+        // Create a course.
+        $course = $generator->create_course();
+
+        // Get enrol id for manual enrol plugin.
+        foreach (enrol_get_instances($course->id, true) as $instance) {
+            if ($instance->enrol === 'manual') {
+                $enrolid = $instance->id;
+            }
+        }
+
+        // Create a couple of test users.
+        $user1 = $generator->create_user(['firstname' => 'Eigh', 'lastname' => 'User',
+                'department' => 'Amphibians', 'profile_field_specialid' => 'Q123',
+                'profile_field_researchtopic' => 'Frogs']);
+        $user2 = $generator->create_user(['firstname' => 'Anne', 'lastname' => 'Other',
+                'department' => 'Amphibians', 'profile_field_specialid' => 'Q456',
+                'profile_field_researchtopic' => 'Toads']);
+
+        // Do this as admin user.
+        $this->setAdminUser();
+
+        // Get potential users and extract the 2 we care about.
+        $result = core_enrol_external::get_potential_users($course->id, $enrolid, '', false, 0, 10);
+        $result1 = $this->extract_user_from_result($result, $user1->id);
+        $result2 = $this->extract_user_from_result($result, $user2->id);
+
+        // Check the fields are the expected ones.
+        $this->assertEquals(['id', 'fullname', 'customfields',
+                'profileimageurl', 'profileimageurlsmall', 'department'], array_keys($result1));
+        $this->assertEquals('Eigh User', $result1['fullname']);
+        $this->assertEquals('Amphibians', $result1['department']);
+
+        // Check the custom fields ONLY include the user identity one.
+        $fieldvalues = [];
+        foreach ($result1['customfields'] as $customfield) {
+            $fieldvalues[$customfield['shortname']] = $customfield['value'];
+        }
+        $this->assertEquals(['specialid'], array_keys($fieldvalues));
+        $this->AssertEquals('Q123', $fieldvalues['specialid']);
+
+        // Just check user 2 is the right user.
+        $this->assertEquals('Anne Other', $result2['fullname']);
+    }
+
+    /**
+     * Utility function to get one user out of the get_potential_users result.
+     *
+     * @param array $result Result array
+     * @param int $userid User id
+     * @return array Data for that user
+     */
+    protected function extract_user_from_result(array $result, int $userid): array {
+        foreach ($result as $item) {
+            if ($item['id'] == $userid) {
+                return $item;
+            }
+        }
+        $this->fail('User not in result: ' . $userid);
     }
 }

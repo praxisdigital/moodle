@@ -221,7 +221,7 @@ class api {
         }
 
         // Identity providers.
-        $authsequence = get_enabled_auth_plugins(true);
+        $authsequence = get_enabled_auth_plugins();
         $identityproviders = \auth_plugin_base::get_identity_providers($authsequence);
         $identityprovidersdata = \auth_plugin_base::prepare_identity_providers_for_output($identityproviders, $OUTPUT);
         if (!empty($identityprovidersdata)) {
@@ -538,8 +538,8 @@ class api {
 
         if (!empty($availablemods['lti'])) {
             $ltidisplayname = $availablemods['lti']->displayname;
-            $features["$ltidisplayname"]['CoreCourseModuleDelegate_AddonModLti:openInAppBrowser'] =
-                new lang_string('openusingembeddedbrowser', 'tool_mobile');
+            $features["$ltidisplayname"]['CoreCourseModuleDelegate_AddonModLti:launchViaSite'] =
+                new lang_string('launchviasiteinbrowser', 'tool_mobile');
         }
 
         // Display OAuth 2 identity providers.
