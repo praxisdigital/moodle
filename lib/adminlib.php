@@ -209,6 +209,7 @@ function uninstall_plugin($type, $name) {
     $DB->delete_records('event', ['component' => $component]);
 
     // Delete scheduled tasks.
+    $DB->delete_records('task_adhoc', ['component' => $component]);
     $DB->delete_records('task_scheduled', array('component' => $component));
 
     // Delete Inbound Message datakeys.
@@ -645,7 +646,8 @@ function enable_cli_maintenance_mode() {
     } else {
         $data = get_string('sitemaintenance', 'admin');
         $data = bootstrap_renderer::early_error_content($data, null, null, null);
-        $data = bootstrap_renderer::plain_page(get_string('sitemaintenancetitle', 'admin', $SITE->fullname), $data);
+        $data = bootstrap_renderer::plain_page(get_string('sitemaintenancetitle', 'admin',
+            format_string($SITE->fullname, true, ['context' => context_system::instance()])), $data);
     }
 
     file_put_contents("$CFG->dataroot/climaintenance.html", $data);
