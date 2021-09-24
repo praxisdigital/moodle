@@ -33,7 +33,9 @@ require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 $id = required_param('cmid', PARAM_INT); // Course module id
 $forcenew = optional_param('forcenew', false, PARAM_BOOL); // Used to force a new preview
 $page = optional_param('page', -1, PARAM_INT); // Page to jump to in the attempt.
-
+// ITAI HACK START
+$page = 0;
+// ITAI HACK END
 if (!$cm = get_coursemodule_from_id('quiz', $id)) {
     print_error('invalidcoursemodule');
 }
@@ -102,11 +104,16 @@ if ($accessmanager->is_preflight_check_required($currentattemptid)) {
     // Pre-flight check passed.
     $accessmanager->notify_preflight_check_passed($currentattemptid);
 }
+// ITAI HACK START - LINE ADDED
+$attemptnumber = $lastattempt->id + 1; // Praxis set new attemoptnumber
+// ITAI HACK END
 if ($currentattemptid) {
     if ($lastattempt->state == quiz_attempt::OVERDUE) {
         redirect($quizobj->summary_url($lastattempt->id));
     } else {
-        redirect($quizobj->attempt_url($currentattemptid, $page));
+        // ITAI HACK START - LINE UNCOMMENTED
+        // redirect($quizobj->attempt_url($currentattemptid, $page));
+        // ITAI HACK END
     }
 }
 

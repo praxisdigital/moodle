@@ -94,5 +94,36 @@ if ($status == quiz_attempt::OVERDUE) {
     redirect($nexturl);
 } else {
     // Attempt abandoned or finished.
-    redirect($attemptobj->review_url());
+
+// ITAI HACK START
+    //  redirect($attemptobj->review_url());
+}
+
+$simplifiedresulturl = new moodle_url('/mod/quiz/simplifiedresult.php?attempt=' . $attemptid);
+redirect($simplifiedresulturl);
+
+die();
+$displayresult = 1;
+
+$activityid = $attemptobj->get_quizid();
+$activitytype = get_module_type_id('quiz');
+// get lessons based on activity id
+
+if (!$quizcustomsettings = $DB->get_record('quiz_custom_settings', array('activityid' => $activityid, 'activitytype' => $activitytype), 'displayresult'))
+{
+    //redirect($attemptobj->review_url());
+}
+else{
+    if ( $quizcustomsettings->displayresult == 1){
+        $simplifiedresulturl = new moodle_url('/mod/quiz/simplifiedresult.php?attempt=' . $attemptid);
+        redirect($simplifiedresulturl);
+    }
+}
+redirect($attemptobj->review_url());
+
+function get_module_type_id($modulename) {
+    global $DB;
+    $result = $DB->get_record('modules', array('name' => $modulename), 'id');
+    return $result === false ? false : $result->id;
+// ITAI HACK END
 }

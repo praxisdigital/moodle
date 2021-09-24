@@ -61,6 +61,17 @@ class mod_quiz_renderer extends plugin_renderer_base {
         return $output;
     }
 
+    // ITAI HACK START
+    public function review_page_simplified(quiz_attempt $attemptobj, $page, $summarydata) {
+
+        $output = '';
+        $output .= $this->header();
+        $output .= $this->review_summary_table($summarydata, $page);
+        $output .= $this->footer();
+        return $output;
+    }
+    // ITAI HACK END
+
     /**
      * Renders the review question pop-up.
      *
@@ -158,10 +169,9 @@ class mod_quiz_renderer extends plugin_renderer_base {
                 $content = $rowdata['content'];
             }
 
-            $output .= html_writer::tag('tr',
-                html_writer::tag('th', $title, array('class' => 'cell', 'scope' => 'row')) .
-                        html_writer::tag('td', $content, array('class' => 'cell'))
-            );
+            // ITAI HACK START
+            $output .= html_writer::tag('div', $title . $content);
+            // ITAI HACK END
         }
 
         $output .= html_writer::end_tag('tbody');
@@ -821,6 +831,50 @@ class mod_quiz_renderer extends plugin_renderer_base {
 
         return $output;
     }
+
+    // ITAI HACK START
+    /**
+     * Generates the view attempt button
+     *
+     * @param int $course The course ID
+     * @param array $quiz Array containging quiz date
+     * @param int $cm The Course Module ID
+     * @param int $context The page Context ID
+     * @param mod_quiz_view_object $viewobj
+     * @param string $buttontext
+     */
+    public function start_attempt_button_result_simplified($buttontext, moodle_url $url,
+                                                           $startattemptwarning, $popuprequired, $popupoptions) {
+
+        $button = new single_button($url, $buttontext);
+        $button->class .= ' quizstartbuttondiv container-fluid tryagain'; /*only line change added extra classes*/
+
+        $warning = '';
+        if ($popuprequired) {
+            $this->page->requires->js_module(quiz_get_js_module());
+            $this->page->requires->js('/mod/quiz/module.js');
+            $popupaction = new popup_action('click', $url, 'quizpopup', $popupoptions);
+
+            $button->class .= ' quizsecuremoderequired';
+            $button->add_action(new component_action('click',
+                'M.mod_quiz.secure_window.start_attempt_action', array(
+                    'url' => $url->out(false),
+                    'windowname' => 'quizpopup',
+                    'options' => $popupaction->get_js_options(),
+                    'fullscreen' => true,
+                    'startattemptwarning' => $startattemptwarning,
+                )));
+
+            $warning = html_writer::tag('noscript', $this->heading(get_string('noscript', 'quiz')));
+
+        } else if ($startattemptwarning) {
+            $button->add_action(new confirm_action($startattemptwarning, null,
+                get_string('startattempt', 'quiz')));
+        }
+
+        return $this->render($button) . $warning;
+    }
+    // ITAI HACK END
 
     /**
      * Generates the view attempt button
