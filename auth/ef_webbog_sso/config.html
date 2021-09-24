@@ -1,0 +1,20 @@
+<?php
+    global $OUTPUT;
+    // set to defaults if undefined
+if (!isset($config->secret)) {
+$config->secret = 'Secret here';
+}
+?>
+<table cellspacing="0" cellpadding="5" border="0">
+<tr valign="top" class="required">
+    <td align="right"></td>
+    <td>    </td>
+    <td></td>
+</tr>
+<?php
+$user_fields = '';
+$user_fields[] = 'email';
+print_auth_lock_options($this->authtype, $user_fields, get_string('auth_fieldlocks_help', 'auth'), false, false);
+
+?>
+</table>

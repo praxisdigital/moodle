@@ -938,3 +938,16 @@ $string['wronguse'] = 'You can not use this page like that';
 $string['xhtml'] = 'XHTML';
 $string['youneedtoenrol'] = 'You need to enrol in this course before you can attempt this quiz';
 $string['yourfinalgradeis'] = 'Your final grade for this quiz is {$a}.';
+
+/* Itai hack */
+$string['resultexplanationlink'] = 'Result explanation';
+$string['resultexplanation'] = 'Result explanation-result';
+$string['seeresultexplanation'] = '$string';
+$string['result'] = "<h3>Antal rigtige ";
+$string['resultvalue'] = ' {$a->percent}%</h3> <br> <div class="formulation clearfix">
+ Du tildeles fuldt point for opgaven, hvis du svarer korrekt i første forsøg.
+Såfremt du svarer forkert i første forsøg, og har brug for endnu et forsøg, sker der et fradrag i point.
+Du kan altså godt besvare alle spørgsmål rigtigt uden at opnå 100% af de mulige point. Det sker, hvis du har brugt mere end 1 forsøg til at besvare nogle af spørgsmålene.
+ </div>';
+$string['tryagain'] = 'Prøv igen';
+/* Itai hack */
