@@ -232,6 +232,8 @@ class mod_assign_mod_form extends moodleform_mod {
         $this->standard_coursemodule_elements();
         $this->apply_admin_defaults();
 
+        $this->apply_activity_admin_defaults($mform);
+
         $this->add_action_buttons();
     }
 
@@ -338,4 +340,44 @@ class mod_assign_mod_form extends moodleform_mod {
         return !empty($data['completionsubmit']);
     }
 
+    /**
+     * Get the admin settings for the assign module and apply the default settings.
+     *
+     * @param MoodleQuickForm $mform
+     * @return void
+     * @throws dml_exception
+     */
+    protected function apply_activity_admin_defaults(\MoodleQuickForm $mform): void {
+        $isupdate = !empty($this->_cm);
+        if ($isupdate) {
+            return;
+        }
+
+        // Get the site admin settings.
+        $settings = get_config('mod_assign');
+
+        if ($mform->elementExists('grade')) {
+            $element = $mform->getElement('grade');
+
+            if (property_exists($settings, 'gradetype')) {
+                switch ((int)$settings->gradetype) {
+                    case GRADE_TYPE_NONE :
+                        $element->currentgradetype = 'none';
+                        break;
+                    case GRADE_TYPE_SCALE :
+                        $element->currentgradetype = 'scale';
+                        break;
+                    case GRADE_TYPE_VALUE :
+                        $element->currentgradetype = 'point';
+                        break;
+                }
+            }
+
+            if (property_exists($settings, 'gradescale')) {
+                $element->currentscaleid = (int)$settings->gradescale;
+            }
+
+            $element->onQuickFormEvent('updateValue', null, $mform);
+        }
+    }
 }
