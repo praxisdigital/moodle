@@ -1085,6 +1085,8 @@ abstract class moodleform_mod extends moodleform {
         $isupdate = !empty($this->_cm);
         $gradeoptions = array('isupdate' => $isupdate,
                               'currentgrade' => false,
+                              'currentgradetype' => $this->get_default_gradetype(),
+                              'currentscaleid' => $this->get_default_gradescale(),
                               'hasgrades' => false,
                               'canrescale' => $this->_features->canrescale,
                               'useratings' => $this->_features->rating);
@@ -1378,5 +1380,37 @@ abstract class moodleform_mod extends moodleform {
             $this->data_postprocessing($data);
         }
         return $data;
+    }
+
+    /**
+     * Get the default gradetype from the module's settings,
+     * if the setting is not set, it defaults to GRADE_TYPE_VALUE aka "Point"
+     * @return int
+     * @throws dml_exception
+     */
+    public function get_default_gradetype() {
+        $modgradetypeconfig = get_config("mod_{$this->_modname}", "gradetype");
+
+        if ($modgradetypeconfig !== false) {
+            return (int)$modgradetypeconfig;
+        }
+
+        return GRADE_TYPE_VALUE;
+    }
+
+    /**
+     * Get the default gradescale from the module's settings,
+     * if the setting is not set, it returns null
+     * @return ?int
+     * @throws dml_exception
+     */
+    public function get_default_gradescale() {
+        $modgradescaleconfig = get_config("mod_{$this->_modname}", "gradescale");
+
+        if ($modgradescaleconfig !== false) {
+            return (int)$modgradescaleconfig;
+        }
+
+        return null;
     }
 }
