@@ -411,10 +411,10 @@ class main implements renderable, templatable {
         $nocoursesurl = $output->image_url('courses', 'block_myoverview')->out();
 
         $newcourseurl = '';
-        $coursecat = \core_course_category::user_top();
-        if ($coursecat && ($category = \core_course_category::get_nearest_editable_subcategory($coursecat, ['create']))) {
-            $newcourseurl = new \moodle_url('/course/edit.php', ['category' => $category->id]);
-        }
+//        $coursecat = \core_course_category::user_top();
+//        if ($coursecat && ($category = \core_course_category::get_nearest_editable_subcategory($coursecat, ['create']))) {
+//            $newcourseurl = new \moodle_url('/course/edit.php', ['category' => $category->id]);
+//        }
 
         $customfieldvalues = $this->get_customfield_values_for_export();
         $selectedcustomfield = '';
