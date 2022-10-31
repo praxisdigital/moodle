@@ -2009,6 +2009,13 @@ class backup_main_structure_step extends backup_structure_step {
         $info['original_course_contextid'] = context_course::instance($this->get_courseid())->id;
         $info['original_system_contextid'] = context_system::instance()->id;
 
+        if((bool)get_config('theme_pxbase', 'ipraxis')) {
+            $info['moodle_version'] = '2020110903.00';
+            $info['moodle_release'] = '3.10.3 (Build: 20210325)';
+            $info['backup_version'] = '2020110900';
+            $info['backup_release'] = '3.10.3';
+        }
+
         // Get more information from controller
         list($dinfo, $cinfo, $sinfo) = backup_controller_dbops::get_moodle_backup_information(
                 $this->get_backupid(), $this->get_task()->get_progress());
