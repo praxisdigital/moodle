@@ -67,21 +67,30 @@ $PAGE->force_lock_all_blocks();
 // Force the add block out of the default area.
 $PAGE->theme->addblockposition  = BLOCK_ADDBLOCK_POSITION_CUSTOM;
 
+/**
+ * Praxis performance fix - start
+ * We have disabled this feature to be able to run our Moodle stable without performance issues
+ */
+
 // Add course management if the user has the capabilities for it.
-$coursecat = core_course_category::user_top();
-$coursemanagemenu = [];
-if ($coursecat && ($category = core_course_category::get_nearest_editable_subcategory($coursecat, ['create']))) {
-    // The user has the capability to create course.
-    $coursemanagemenu['newcourseurl'] = new moodle_url('/course/edit.php', ['category' => $category->id]);
-}
-if ($coursecat && ($category = core_course_category::get_nearest_editable_subcategory($coursecat, ['manage']))) {
-    // The user has the capability to manage the course category.
-    $coursemanagemenu['manageurl'] = new moodle_url('/course/management.php', ['categoryid' => $category->id]);
-}
-if (!empty($coursemanagemenu)) {
-    // Render the course management menu.
-    $PAGE->add_header_action($OUTPUT->render_from_template('my/dropdown', $coursemanagemenu));
-}
+//$coursecat = core_course_category::user_top();
+//$coursemanagemenu = [];
+//if ($coursecat && ($category = core_course_category::get_nearest_editable_subcategory($coursecat, ['create']))) {
+//    // The user has the capability to create course.
+//    $coursemanagemenu['newcourseurl'] = new moodle_url('/course/edit.php', ['category' => $category->id]);
+//}
+//if ($coursecat && ($category = core_course_category::get_nearest_editable_subcategory($coursecat, ['manage']))) {
+//    // The user has the capability to manage the course category.
+//    $coursemanagemenu['manageurl'] = new moodle_url('/course/management.php', ['categoryid' => $category->id]);
+//}
+//if (!empty($coursemanagemenu)) {
+//    // Render the course management menu.
+//    $PAGE->add_header_action($OUTPUT->render_from_template('my/dropdown', $coursemanagemenu));
+//}
+
+/**
+ * Praxis performance fix - end
+ */
 
 echo $OUTPUT->header();
 
