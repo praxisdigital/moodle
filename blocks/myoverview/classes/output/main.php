@@ -367,7 +367,7 @@ class main implements renderable, templatable {
         if (!$courses) {
             return [];
         }
-        list($csql, $params) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
+        [$csql, $params] = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
         $select = "instanceid $csql AND fieldid = :fieldid";
         $params['fieldid'] = $fieldid;
         $distinctablevalue = $DB->sql_compare_text('value');
@@ -411,10 +411,18 @@ class main implements renderable, templatable {
         $nocoursesurl = $output->image_url('courses', 'block_myoverview')->out();
 
         $newcourseurl = '';
-        $coursecat = \core_course_category::user_top();
-        if ($coursecat && ($category = \core_course_category::get_nearest_editable_subcategory($coursecat, ['create']))) {
-            $newcourseurl = new \moodle_url('/course/edit.php', ['category' => $category->id]);
-        }
+		/**
+		 * Praxis performance fix
+		 * We have disabled this feature to be able to run our Moodle stable without performance issues
+		 */
+//        $coursecat = \core_course_category::user_top();
+//        if ($coursecat && ($category = \core_course_category::get_nearest_editable_subcategory($coursecat, ['create']))) {
+//            $newcourseurl = new \moodle_url('/course/edit.php', ['category' => $category->id]);
+//        }
+
+	    /**
+	     * Praxis performance fix - end
+	     */
 
         $customfieldvalues = $this->get_customfield_values_for_export();
         $selectedcustomfield = '';
