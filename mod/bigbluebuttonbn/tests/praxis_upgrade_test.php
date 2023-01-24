@@ -61,17 +61,17 @@ class praxis_upgrade_test extends \advanced_testcase {
 		// Lowering version of existing installation = 2022041901 to trigger upgrade
 		$sql = /** @lang mysql */ "
 			UPDATE {config_plugins} 
-			SET {config_plugins}.value = 2022041901 
-			WHERE {config_plugins}.plugin = 'mod_bigbluebuttonbn' 
-			AND {config_plugins}.name = 'version'
+			SET value = 2022041901 
+			WHERE plugin = 'mod_bigbluebuttonbn' 
+			AND name = 'version'
 		";
 		$DB->execute($sql);
 
 		// Make Moodle re-calculate version hash
 		$sql = /** @lang mysql */"
 			UPDATE {config} 
-			SET {config}.value = '' 
-			WHERE {config}.name = 'allversionshash'
+			SET value = '' 
+			WHERE name = 'allversionshash'
 		";
 		$DB->execute($sql);
 
