@@ -148,8 +148,8 @@ class stateupdates implements JsonSerializable {
      *
      * @param int $cmid the affected course module id
      */
-    public function add_cm_put(int $cmid): void {
-        $this->create_or_put_cm($cmid, 'put');
+    public function add_cm_put(\cm_info $cm): void {
+        $this->create_or_put_cm($cm, 'put');
     }
 
     /**
@@ -157,8 +157,8 @@ class stateupdates implements JsonSerializable {
      *
      * @param int $cmid the affected course module id
      */
-    public function add_cm_create(int $cmid): void {
-        $this->create_or_put_cm($cmid, 'create', true);
+    public function add_cm_create(\cm_info $cm): void {
+        $this->create_or_put_cm($cm, 'create');
     }
 
     /**
@@ -167,11 +167,8 @@ class stateupdates implements JsonSerializable {
      * @param int $cmid The affected course module id.
      * @param string $action The action to track for the section ('create' or 'put').
      */
-    protected function create_or_put_cm(int $cmid, string $action): void {
-        $modinfo = course_modinfo::instance($this->format->get_course());
-
-        $cm = $modinfo->get_cm($cmid);
-        $section = $modinfo->get_section_info_by_id($cm->section);
+    protected function create_or_put_cm(\cm_info $cm, string $action): void {
+        $section = $cm->get_section_info();
         $format = $this->format;
 
         if (!$section->uservisible || !$cm->is_visible_on_course_page()) {

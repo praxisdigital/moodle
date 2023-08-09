@@ -92,7 +92,7 @@ class stateactions {
         foreach ($cms as $cm) {
             $currentsection = $modinfo->get_section_info_by_id($cm->section, MUST_EXIST);
             moveto_module($cm, $targetsection, $targetcm);
-            $updates->add_cm_put($cm->id);
+            $updates->add_cm_put($cm);
             if ($currentsection->id != $targetsection->id) {
                 $originalsections[$currentsection->id] = true;
             }
@@ -151,7 +151,7 @@ class stateactions {
         }
 
         // Use section_state to return the section and activities updated state.
-        $this->section_state($updates, $course, $ids, $targetsectionid);
+        $this->section_state($updates, $modinfo, $ids, $targetsectionid);
 
         // All course sections can be renamed because of the resort.
         $allsections = $modinfo->get_section_info_all();
@@ -328,7 +328,7 @@ class stateactions {
         foreach ($cms as $cm) {
             $modcontext = context_module::instance($cm->id);
             course_module_updated::create_from_cm($cm, $modcontext)->trigger();
-            $updates->add_cm_put($cm->id);
+            $updates->add_cm_put($cm);
         }
     }
 
@@ -450,7 +450,7 @@ class stateactions {
         foreach (array_keys($cmids) as $cmid) {
 
             // Add this action to updates array.
-            $updates->add_cm_put($cmid);
+            $updates->add_cm_put($modinfo->get_cm($cmid));
 
             $cm = $modinfo->get_cm($cmid);
             $sectionids[$cm->section] = true;
@@ -475,11 +475,12 @@ class stateactions {
      */
     public function section_state(
         stateupdates $updates,
-        stdClass $course,
+        \course_modinfo $modinfo,
         array $ids,
         ?int $targetsectionid = null,
         ?int $targetcmid = null
     ): void {
+        $course = $modinfo->get_course();
 
         $cmids = [];
         if ($targetcmid) {
@@ -496,8 +497,6 @@ class stateactions {
         }
 
         $this->validate_sections($course, array_keys($sectionids), __FUNCTION__);
-
-        $modinfo = course_modinfo::instance($course);
 
         foreach (array_keys($sectionids) as $sectionid) {
             $sectioninfo = $modinfo->get_section_info_by_id($sectionid);
@@ -517,7 +516,7 @@ class stateactions {
 
         foreach (array_keys($cmids) as $cmid) {
             // Add this action to updates array.
-            $updates->add_cm_put($cmid);
+            $updates->add_cm_put($modinfo->get_cm($cmid));
         }
     }
 
@@ -552,7 +551,7 @@ class stateactions {
             $sectionids[] = $sectioninfo->id;
         }
         if (!empty($sectionids)) {
-            $this->section_state($updates, $course, $sectionids);
+            $this->section_state($updates, $modinfo, $sectionids);
         }
     }
 

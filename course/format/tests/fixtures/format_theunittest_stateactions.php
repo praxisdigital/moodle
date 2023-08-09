@@ -45,7 +45,9 @@ class stateactions extends core_actions {
         ?int $targetsectionid = null,
         ?int $targetcmid = null
     ): void {
-        $updates->add_cm_create(array_pop($ids));
+        $modinfo = \course_modinfo::instance($course);
+        $cmid = array_pop($ids);
+        $updates->add_cm_create($modinfo->get_cm($cmid));
     }
 
     /**
@@ -104,8 +106,8 @@ class stateactions extends core_actions {
         ?int $targetsectionid = null,
         ?int $targetcmid = null
     ): void {
-
-        $updates->add_cm_put($targetcmid);
+        $modinfo = \course_modinfo::instance($course);
+        $updates->add_cm_put($modinfo->get_cm($targetcmid));
     }
 
 }
