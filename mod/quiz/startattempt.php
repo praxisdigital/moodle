@@ -99,6 +99,11 @@ if ($accessmanager->is_preflight_check_required($currentattemptid)) {
     // Pre-flight check passed.
     $accessmanager->notify_preflight_check_passed($currentattemptid);
 }
+
+// ITAI HACK START - LINE ADDED
+$attemptnumber = ($lastattempt->id ?? 0) + 1; // Praxis set new attemoptnumber
+// ITAI HACK END
+
 if ($currentattemptid) {
     if ($lastattempt->state == quiz_attempt::OVERDUE) {
         redirect($quizobj->summary_url($lastattempt->id));
