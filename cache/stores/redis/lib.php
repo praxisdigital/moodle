@@ -548,21 +548,41 @@ class cachestore_redis extends cache_store implements cache_is_key_aware, cache_
     public function acquire_lock($key, $ownerid) {
         $timelimit = time() + $this->lockwait;
         do {
-            // If the key doesn't already exist, grab it and return true.
-            if ($this->redis->setnx($key, $ownerid)) {
-                // Ensure Redis deletes the key after a bit in case something goes wrong.
-                $this->redis->expire($key, $this->locktimeout);
-                // If we haven't got it already, better register a shutdown function.
-                if ($this->currentlocks === null) {
-                    core_shutdown_manager::register_function([$this, 'shutdown_release_locks']);
-                    $this->currentlocks = [];
-                }
-                $this->currentlocks[$key] = $ownerid;
-                return true;
+            // Key already exists, wait 1 second then retry.
+            if ($this->redis->exists($key)) {
+                sleep(1);
+                continue;
             }
-            // Wait 1 second then retry.
-            sleep(1);
+
+            // Set lock with timeout.
+            $this->redis->setex($key, $this->locktimeout, $ownerid);
+
+            // If we haven't got it already, better register a shutdown function.
+            if ($this->currentlocks === null) {
+                core_shutdown_manager::register_function([$this, 'shutdown_release_locks']);
+                $this->currentlocks = [];
+            }
+            $this->currentlocks[$key] = $ownerid;
+
+            return true;
         } while (time() < $timelimit);
+
+        global $DB;
+        $DB->insert_record('pxllog', [
+            'uid' => $key,
+            'level' => 'info',
+            'user_id' => $ownerid,
+            'platform' => 'moodle',
+            'component' => 'cachestore_redis',
+            'instance_type' => __CLASS__ . '::' . __FUNCTION__,
+            'message' => 'Timed out waiting for Redis cache lock',
+            'context' => json_encode([
+                'timelimit' => $timelimit,
+                'key' => $key,
+                'ownerid' => $ownerid,
+            ]),
+        ]);
+
         return false;
     }
 
