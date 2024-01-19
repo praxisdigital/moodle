@@ -50,6 +50,11 @@ class manager {
     const ADHOC_TASK_QUEUE_MODE_FILLING = 1;
 
     /**
+     * @var ?task_base $runningtask Used to tell what is the current running task in this process.
+     */
+    private static ?task_base $runningtask = null;
+
+    /**
      * @var array A cached queue of adhoc tasks
      */
     public static $miniqueue;
@@ -1077,6 +1082,33 @@ class manager {
     }
 
     /**
+     * This function will fail the currently running task, if there is one.
+     */
+    public static function fail_running_task(): void {
+        if (self::$runningtask === null) {
+            return;
+        }
+
+        self::task_failed(self::$runningtask);
+    }
+
+    /**
+     * This function will fail the given task.
+     * @param task_base $task
+     */
+    public static function task_failed(task_base $task): void {
+        if ($task instanceof scheduled_task) {
+            self::scheduled_task_failed($task);
+            return;
+        }
+
+        if ($task instanceof adhoc_task) {
+            self::adhoc_task_failed($task);
+            return;
+        }
+    }
+
+    /**
      * This function indicates that an adhoc task was not completed successfully and should be retried.
      *
      * @param \core\task\adhoc_task $task
@@ -1125,6 +1157,8 @@ class manager {
             $task->get_cron_lock()->release();
         }
         $task->get_lock()->release();
+
+        self::$runningtask = null;
     }
 
     /**
@@ -1150,6 +1184,8 @@ class manager {
 
         $record = self::record_from_adhoc_task($task);
         $DB->update_record('task_adhoc', $record);
+
+        self::$runningtask = $task;
     }
 
     /**
@@ -1175,6 +1211,8 @@ class manager {
             $task->get_cron_lock()->release();
         }
         $task->get_lock()->release();
+
+        self::$runningtask = null;
     }
 
     /**
@@ -1219,6 +1257,8 @@ class manager {
             $task->get_cron_lock()->release();
         }
         $task->get_lock()->release();
+
+        self::$runningtask = null;
     }
 
     /**
@@ -1264,6 +1304,8 @@ class manager {
         $record->hostname = $hostname;
         $record->pid = $pid;
         $DB->update_record('task_scheduled', $record);
+
+        self::$runningtask = $task;
     }
 
     /**
@@ -1298,6 +1340,8 @@ class manager {
             $task->get_cron_lock()->release();
         }
         $task->get_lock()->release();
+
+        self::$runningtask = null;
     }
 
     /**
