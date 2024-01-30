@@ -6515,6 +6515,97 @@ class admin_setting_my_grades_report extends admin_setting_configselect {
 }
 
 /**
+ * A setting for setting the minimum number of grades needing to be re-graded, before a progressbar is needed.
+ *
+ * Must be an integer between 1 and 10000.
+ *
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class admin_setting_regradeprogressbarcount extends admin_setting_configtext {
+
+    /**
+     * Config regradeprogressbarcount constructor
+     *
+     * @param string $name Overidden by "regradeprogressbarcount"
+     * @param string $visiblename Overridden by "regradeprogressbarcount" language string.
+     * @param string $description Overridden by "regradeprogressbarcount_help" language string.
+     * @param string $defaultsetting Not used, overridden by 100.
+     * @param mixed $paramtype Overridden by PARAM_INT.
+     * @param int $size Overridden by 5.
+     */
+    public function __construct(
+        $name = '',
+        $visiblename = '',
+        $description = '',
+        $defaultsetting = '',
+        $paramtype = PARAM_RAW,
+        $size = null
+    ) {
+        $name = 'regradeprogressbarcount';
+        $visiblename = get_string('regradeprogressbarcount', 'grades');
+        $description = get_string('regradeprogressbarcount_help', 'grades');
+        // This figure may seem arbitrary, but after analysis it seems that 100 grade_grades can be calculated in ~= 0.5 seconds.
+        // Any longer than this and we want to show the progress bar.
+        $defaultsetting = 100;
+        $paramtype = PARAM_INT;
+        $size = 5;
+        parent::__construct($name, $visiblename, $description, $defaultsetting, $paramtype, $size);
+    }
+
+    /**
+     * Save the selected setting
+     *
+     * @param string $data The minum number of grades needed to be re-graded
+     * @return string empty string or error message
+     */
+    public function write_setting($data) {
+        if ($data === '') {
+            $data = (int)$this->defaultsetting;
+        }
+
+        return parent::write_setting($data);
+    }
+
+    /**
+     * Validate data before storage
+     * @param string $data
+     * @return mixed true if ok string if error found
+     */
+    public function validate($data) {
+        if (((string)(int)$data === (string)$data && $data > 0 && $data <= 10000)) {
+            return true;
+        } else {
+            return get_string('regradeprogressbarcount_validateerror', 'grades');
+        }
+    }
+
+    /**
+     * Return an XHTML string for the setting
+     * @param array $data Associative array of value=>xx, forced=>xx, adv=>xx
+     * @param string $query search query to be highlighted
+     * @return string Returns an XHTML string
+     */
+    public function output_html($data, $query = '') {
+        global $OUTPUT;
+
+        $default = $this->get_defaultsetting();
+        $context = (object) [
+            'size' => $this->size,
+            'id' => $this->get_id(),
+            'name' => $this->get_full_name(),
+            'value' => $data,
+            'attributes' => [
+                'maxlength' => 5,
+            ],
+            'forceltr' => $this->get_force_ltr(),
+        ];
+        $element = $OUTPUT->render_from_template('core_admin/setting_configtext', $context);
+
+        return format_admin_setting($this, $this->visiblename, $element, $this->description, true, '', $default, $query);
+    }
+}
+
+/**
  * Special class for register auth selection
  *
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

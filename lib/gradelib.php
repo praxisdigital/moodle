@@ -362,9 +362,7 @@ function grade_needs_regrade_progress_bar($courseid) {
     list($sql, $params) = $DB->get_in_or_equal(array_keys($grade_items), SQL_PARAMS_NAMED, 'gi');
     $gradecount = $DB->count_records_select('grade_grades', 'itemid ' . $sql, $params);
 
-    // This figure may seem arbitrary, but after analysis it seems that 100 grade_grades can be calculated in ~= 0.5 seconds.
-    // Any longer than this and we want to show the progress bar.
-    return $gradecount > 100;
+    return $gradecount > (int)get_config('core', 'regradeprogressbarcount');
 }
 
 /**
