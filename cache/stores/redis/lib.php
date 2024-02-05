@@ -539,6 +539,28 @@ class cachestore_redis extends cache_store implements cache_is_key_aware, cache_
 
     /**
      * Tries to acquire a lock with a given name.
+     * @param string $key Name of the lock to acquire.
+     * @param string $ownerid Information to identify owner of lock if acquired.
+     * @return bool True if the lock was acquired, false if it was not.
+     * @throws RedisException
+     */
+    protected function get_lock(string $key, string $ownerid): bool {
+        if ($this->redis->exists($key)) {
+            return false;
+        }
+
+        return $this->redis->set(
+            $key,
+            $ownerid,
+            [
+                'nx',
+                'ex' => $this->locktimeout,
+            ]
+        );
+    }
+
+    /**
+     * Tries to acquire a lock with a given name.
      *
      * @see cache_is_lockable
      * @param string $key Name of the lock to acquire.
@@ -548,21 +570,23 @@ class cachestore_redis extends cache_store implements cache_is_key_aware, cache_
     public function acquire_lock($key, $ownerid) {
         $timelimit = time() + $this->lockwait;
         do {
-            // If the key doesn't already exist, grab it and return true.
-            if ($this->redis->setnx($key, $ownerid)) {
-                // Ensure Redis deletes the key after a bit in case something goes wrong.
-                $this->redis->expire($key, $this->locktimeout);
-                // If we haven't got it already, better register a shutdown function.
-                if ($this->currentlocks === null) {
-                    core_shutdown_manager::register_function([$this, 'shutdown_release_locks']);
-                    $this->currentlocks = [];
-                }
-                $this->currentlocks[$key] = $ownerid;
-                return true;
+            // Lock already exists, wait 1 second then retry.
+            if (!$this->get_lock($key, $ownerid)) {
+                sleep(1);
+                continue;
             }
-            // Wait 1 second then retry.
-            sleep(1);
+
+            // If we haven't got it already, better register a shutdown function.
+            if ($this->currentlocks === null) {
+                core_shutdown_manager::register_function([$this, 'shutdown_release_locks']);
+                $this->currentlocks = [];
+            }
+
+            $this->currentlocks[$key] = $ownerid;
+
+            return true;
         } while (time() < $timelimit);
+
         return false;
     }
 
