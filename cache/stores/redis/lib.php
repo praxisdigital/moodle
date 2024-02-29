@@ -567,11 +567,11 @@ class cachestore_redis extends cache_store implements cache_is_key_aware, cache_
             return true;
         } while (time() < $timelimit);
 
-        global $DB;
+        global $DB, $USER;
         $DB->insert_record('pxllog', [
             'uid' => $key,
             'level' => 'info',
-            'user_id' => $ownerid,
+            'user_id' => $USER->id ?? 0,
             'platform' => 'moodle',
             'component' => 'cachestore_redis',
             'instance_type' => __CLASS__ . '::' . __FUNCTION__,
