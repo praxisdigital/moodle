@@ -108,7 +108,9 @@ if ($currentattemptid) {
     if ($lastattempt->state == quiz_attempt::OVERDUE) {
         redirect($quizobj->summary_url($lastattempt->id));
     } else {
-        redirect($quizobj->attempt_url($currentattemptid, $page));
+        // ITAI HACK START - LINE ADDED
+        //redirect($quizobj->attempt_url($currentattemptid, $page));
+        // ITAI HACK END
     }
 }
 
