@@ -1084,3 +1084,16 @@ $string['completionpass_help'] = 'If enabled, this activity is considered comple
 $string['completiondetail:passgrade'] = 'Receive a pass grade';
 $string['gradetopassnotset'] = 'This quiz does not yet have a grade to pass set. It may be set in the Grade section of the quiz settings.';
 $string['basicideasofquiz'] = 'The basic ideas of quiz-making';
+
+// ITAI HACK START
+$string['resultexplanationlink'] = 'Result explanation';
+$string['resultexplanation'] = 'Result explanation-result';
+$string['seeresultexplanation'] = '$string';
+$string['result'] = "<h3>Antal rigtige ";
+$string['resultvalue'] = ' {$a->percent}%</h3> <br> <div class="formulation clearfix">
+ Du tildeles fuldt point for opgaven, hvis du svarer korrekt i første forsøg.
+Såfremt du svarer forkert i første forsøg, og har brug for endnu et forsøg, sker der et fradrag i point.
+Du kan altså godt besvare alle spørgsmål rigtigt uden at opnå 100% af de mulige point. Det sker, hvis du har brugt mere end 1 forsøg til at besvare nogle af spørgsmålene.
+ </div>';
+$string['tryagain'] = 'Prøv igen';
+// ITAI HACK END

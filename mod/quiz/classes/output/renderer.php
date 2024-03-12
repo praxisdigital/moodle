@@ -45,6 +45,17 @@ use stdClass;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class renderer extends plugin_renderer_base {
+
+    // ITAI HACK START
+    public function review_page_simplified(quiz_attempt $attemptobj, $page, $summarydata) {
+        $output = '';
+        $output .= $this->header();
+        $output .= $this->review_summary_table($summarydata, $page);
+        $output .= $this->footer();
+        return $output;
+    }
+    // ITAI HACK END
+
     /**
      * Builds the review page
      *
