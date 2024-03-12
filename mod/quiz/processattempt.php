@@ -101,5 +101,12 @@ if ($status == quiz_attempt::OVERDUE) {
     redirect($nexturl);
 } else {
     // Attempt abandoned or finished.
-    redirect($attemptobj->review_url());
+// ITAI HACK START
+    //redirect($attemptobj->review_url());
 }
+
+$simplifiedresulturl = new moodle_url('/mod/quiz/simplifiedresult.php?attempt=' . $attemptid);
+redirect($simplifiedresulturl);
+
+die();
+// ITAI HACK END
