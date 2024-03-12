@@ -6,6 +6,8 @@ global $CFG;
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 require_once($CFG->dirroot . '/mod/quiz/report/reportlib.php');
 
+use mod_quiz\quiz_attempt;
+
 $attemptid     = required_param('attempt',  PARAM_INT);
 $url = new moodle_url('/mod/quiz/simplifiedresult.php', array('attempt'=>$attemptid));
 $PAGE->set_url($url);
