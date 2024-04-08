@@ -27486,7 +27486,15 @@ aside[id^=block-region-side-] .block_recentlyaccesseditems .dashboard-card-deck 
   height: 0;
 }
 .path-course-view .block.block_calendar_month .maincalendar .calendarwrapper .arrow_text {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .path-course-view .block.block_calendar_month .footer .bottom .footer-link {
   display: block;
@@ -29005,6 +29013,9 @@ span.editinstructions .alert-link {
   top: 0;
   padding: 2rem;
   width: 100%;
+}
+.course-section .overlay-preview {
+  z-index: 5;
 }
 
 .description .course-description-item {
@@ -30941,14 +30952,10 @@ a.ygtvspacer:hover {
 .message-app .contact-status {
   position: absolute;
   left: 39px;
-  top: 39px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  top: 34px;
 }
-.message-app .contact-status.online {
-  border: 1px solid #fff;
-  background-color: #357a32;
+.message-app .contact-status.online .icon {
+  color: #357a32;
 }
 .message-app .message p {
   margin: 0;
@@ -35667,6 +35674,9 @@ body {
 .navbar-nav .popover-region .icon {
   font-weight: bolder;
 }
+.navbar-nav .popover-region .notification-image .icon {
+  font-weight: 400;
+}
 
 .navbar .popover-region.collapsed .popover-region-container {
   opacity: 0;
@@ -35766,9 +35776,9 @@ body {
   width: calc(100% - 24px);
 }
 .content-item-container.selected {
-  background-color: #4f94cd;
+  background-color: #3279b3;
   color: #fff;
-  border-color: #4f94cd;
+  border-color: #3279b3;
 }
 .content-item-container.selected .content-item-footer .timestamp {
   color: #fff;
@@ -37439,9 +37449,6 @@ div.editor_atto_toolbar button .icon {
 .courseindex .courseindex-item:hover.dimmed .courseindex-chevron, .courseindex .courseindex-item:focus.dimmed .courseindex-link,
 .courseindex .courseindex-item:focus.dimmed .courseindex-chevron {
   color: black;
-}
-.courseindex .courseindex-item:hover.draggable, .courseindex .courseindex-item:focus.draggable {
-  cursor: pointer;
 }
 .courseindex .courseindex-item.dragging {
   border: 1px solid #b8dce2;
