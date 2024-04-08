@@ -69,7 +69,7 @@ function xmldb_label_upgrade($oldversion) {
     // Automatically generated Moodle v4.1.0 release upgrade line.
     // Put any upgrade step following this.
 
-    if ($oldversion < 2022112801) {
+    /*if ($oldversion < 2022112801) {
         $prevlang = force_current_language($CFG->lang);
 
         $select = $DB->sql_like('name', ':tofind');
@@ -110,7 +110,7 @@ function xmldb_label_upgrade($oldversion) {
         }
         force_current_language($prevlang);
         upgrade_mod_savepoint(true, 2022112801, 'label');
-    }
+    }*/
 
     // Automatically generated Moodle v4.2.0 release upgrade line.
     // Put any upgrade step following this.
