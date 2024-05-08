@@ -31,7 +31,7 @@ defined('MOODLE_INTERNAL') || die();
  *
  * TODO: Finish phpdocs
  */
-class restore_root_task extends restore_task {
+class restore_root_task extends restore_task implements checksumable {
 
     /**
      * Create all the steps that will be part of this task
@@ -343,5 +343,24 @@ class restore_root_task extends restore_task {
         $legacyfiles->set_ui(new backup_setting_ui_checkbox($legacyfiles, get_string('rootsettinglegacyfiles', 'backup')));
         $legacyfiles->get_ui()->set_changeable($changeable);
         $this->add_setting($legacyfiles);
+    }
+
+    /**
+     * Test if a given checksum is correct for this task.
+     *
+     * @param string $checksum
+     * @return boolean True if the checksum is correct, false otherwise.
+     */
+    public function is_checksum_correct($checksum) {
+        return $this->calculate_checksum() === $checksum;
+    }
+
+    /**
+     * Calculate checksum for this task.
+     *
+     * @return string Checksum as MD5 hash.
+     */
+    public function calculate_checksum() {
+        return md5($this->name . '-' . backup_general_helper::array_checksum_recursive($this->settings));
     }
 }
