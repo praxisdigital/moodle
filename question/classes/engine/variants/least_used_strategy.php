@@ -87,7 +87,12 @@ class least_used_strategy implements \question_variant_selection_strategy {
         }
 
         if (isset($this->selectedvariant[$seed])) {
-            return $this->selectedvariant[$seed];
+            $selectedvariant = $this->selectedvariant[$seed];
+            if ($selectedvariant <= $maxvariants) {
+                return $selectedvariant;
+            }
+
+            return ($selectedvariant % $maxvariants) + 1;
         }
 
         // Catch a possible programming error, and make the problem clear.
