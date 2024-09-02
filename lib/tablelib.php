@@ -204,6 +204,21 @@ class flexible_table {
             TABLE_VAR_RESET  => 'treset',
             TABLE_VAR_DIR    => 'tdir',
         );
+
+        static $notified = [];
+        if (!(defined('AJAX_SCRIPT') && AJAX_SCRIPT) &&
+                $this instanceof \core_table\dynamic &&
+                !method_exists($this, 'has_capability') &&
+                empty($notified[get_class($this)])) {
+            // Classes implementing \core_table\dynamic must have a method has_capability():bool .
+            // This will be enforced in Moodle 4.5.
+            \core\notification::add(
+                get_string('codingerror', 'debug',
+                'Error in class '.get_class($this).'. Some functionality may be available to admins only.'),
+                \core\notification::WARNING
+            );
+            $notified[get_class($this)] = true;
+        }
     }
 
     /**
@@ -2048,6 +2063,8 @@ class table_sql extends flexible_table {
     }
 
     /**
+     * Build the table from the fetched data.
+     *
      * Take the data returned from the db_query and go through all the rows
      * processing each col using either col_{columnname} method or other_cols
      * method or if other_cols returns NULL then put the data straight into the
@@ -2056,18 +2073,13 @@ class table_sql extends flexible_table {
      * After calling this function, don't forget to call close_recordset.
      */
     public function build_table() {
-
-        if ($this->rawdata instanceof \Traversable && !$this->rawdata->valid()) {
-            return;
-        }
         if (!$this->rawdata) {
             return;
         }
 
         foreach ($this->rawdata as $row) {
             $formattedrow = $this->format_row($row);
-            $this->add_data_keyed($formattedrow,
-                $this->get_row_class($row));
+            $this->add_data_keyed($formattedrow, $this->get_row_class($row));
         }
     }
 
