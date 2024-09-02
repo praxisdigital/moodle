@@ -38,12 +38,12 @@ require_once($CFG->dirroot . '/enrol/externallib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @since Moodle 2.4
  */
-class externallib_test extends externallib_advanced_testcase {
+final class externallib_test extends externallib_advanced_testcase {
 
     /**
      * dataProvider for test_get_enrolled_users_visibility().
      */
-    public function get_enrolled_users_visibility_provider() {
+    public static function get_enrolled_users_visibility_provider(): array {
         return array(
             'Course without groups, default behavior (not filtering by cap, group, active)' =>
             array(
@@ -232,7 +232,7 @@ class externallib_test extends externallib_advanced_testcase {
                 ),
             ),
 
-            'Course with separate groups, filtering by withcapability (having moodle/role:review)' =>
+            'Course with separate groups, filtering by withcapability (having moodle/role:review & moodle/course:bulkmessaging)' =>
             array(
                 'settings' => array(
                     'coursegroupmode' => SEPARATEGROUPS,
@@ -328,8 +328,9 @@ class externallib_test extends externallib_advanced_testcase {
                 $this->expectExceptionMessage($exception['message']);
             } else {
                 // Failed, only canview and exception are supported.
-                $this->markTestIncomplete('Incomplete, only canview and exception are supported');
+                throw new \coding_exception('Incomplete, only canview and exception are supported');
             }
+
             // Switch to the user and assign the role.
             $this->setUser(${$user});
             role_assign($roleid, $USER->id, $coursecontext);
@@ -1124,7 +1125,7 @@ class externallib_test extends externallib_advanced_testcase {
     /**
      * dataProvider for test_submit_user_enrolment_form().
      */
-    public function submit_user_enrolment_form_provider() {
+    public static function submit_user_enrolment_form_provider(): array {
         $now = new \DateTime();
 
         $nextmonth = clone($now);
