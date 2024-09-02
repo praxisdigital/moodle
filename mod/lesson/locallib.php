@@ -1063,7 +1063,7 @@ function lesson_get_overview_report_table_and_data(lesson $lesson, $currentgroup
             $row = [$studentname];
 
             foreach ($extrafields as $field) {
-                $row[] = $student->$field;
+                $row[] = s($student->$field);
             }
 
             $row[] = $attempts;
@@ -1386,8 +1386,9 @@ abstract class lesson_add_page_form_base extends moodleform {
             $mform->addElement('hidden', 'qtype');
             $mform->setType('qtype', PARAM_INT);
 
-            $mform->addElement('text', 'title', get_string('pagetitle', 'lesson'), array('size'=>70));
+            $mform->addElement('text', 'title', get_string('pagetitle', 'lesson'), ['size' => 70, 'maxlength' => 255]);
             $mform->addRule('title', get_string('required'), 'required', null, 'client');
+            $mform->addRule('title', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
             if (!empty($CFG->formatstringstriptags)) {
                 $mform->setType('title', PARAM_TEXT);
             } else {
@@ -2886,15 +2887,17 @@ class lesson extends lesson_base {
 
         if ($this->properties->usepassword && empty($USER->lessonloggedin[$this->id])) {
             $correctpass = false;
-            if (!empty($userpassword) &&
-                    (($this->properties->password == md5(trim($userpassword))) || ($this->properties->password == trim($userpassword)))) {
+
+            $userpassword = trim((string) $userpassword);
+            if ($userpassword !== '' &&
+                    ($this->properties->password === md5($userpassword) || $this->properties->password === $userpassword)) {
                 // With or without md5 for backward compatibility (MDL-11090).
                 $correctpass = true;
                 $USER->lessonloggedin[$this->id] = true;
             } else if (isset($this->properties->extrapasswords)) {
                 // Group overrides may have additional passwords.
                 foreach ($this->properties->extrapasswords as $password) {
-                    if (strcmp($password, md5(trim($userpassword))) === 0 || strcmp($password, trim($userpassword)) === 0) {
+                    if ($password === md5($userpassword) || $password === $userpassword) {
                         $correctpass = true;
                         $USER->lessonloggedin[$this->id] = true;
                     }
