@@ -285,7 +285,12 @@ class redis extends handler {
             foreach ($this->locks as $id => $expirytime) {
                 if ($expirytime > $this->time()) {
                     $this->unlock_session($id);
+                } // Moxis core hack start
+                else {
+                    $logger = $this->get_moxis_logger($id);
+                    $logger->warning("Session lock for sid: $id was not removed in Redis.");
                 }
+                // Moxis core hack end
                 unset($this->locks[$id]);
             }
         } catch (RedisException $e) {
@@ -445,11 +450,87 @@ class redis extends handler {
      * @param string $id Session id to be unlocked.
      */
     protected function unlock_session($id) {
+        // Moxis core hack start
+        $logger = $this->get_moxis_logger($id);
+        $logger->info("Releasing session lock for sid: $id...");
+        // Moxis core hack end
         if (isset($this->locks[$id])) {
             $this->connection->del($id.".lock");
             unset($this->locks[$id]);
+            // Moxis core hack start
+            $logger->info("Session lock for sid: $id released.");
+            // Moxis core hack end
+        } // Moxis core hack start
+        else {
+            $logger->warning("Session lock for sid: $id does not exist, doing nothing.");
         }
+        // Moxis core hack end
     }
+
+    // Moxis core hack start
+    private function get_moxis_logger(string $id, string $whoami = ''): \Moxis\Monolog\Logger
+    {
+        global $CFG, $USER;
+        $logger = new \Moxis\Monolog\Logger('mxlog');
+        $handler = new \Moxis\Monolog\Handler\StreamHandler(
+            $CFG->dataroot . '/session_lock.log',
+            useLocking: true
+        );
+        $handler->setFormatter(new \Moxis\Monolog\Formatter\JsonFormatter());
+
+        $logger->pushHandler($handler);
+        $logger->pushProcessor(static function (array $record) use ($USER, $id, $whoami) {
+            // @see https://docs.datadoghq.com/tracing/other_telemetry/connect_logs_and_traces/php/#manual-injection
+            // Requires the dd-trace-php extension @see https://github.com/DataDog/dd-trace-php
+            $record['dd'] = [
+                'trace_id' => \DDTrace\logs_correlation_trace_id(),
+                'span_id' => \dd_trace_peek_span_id()
+            ];
+
+            $record['user_id'] = $USER->id;
+            $record['session_id'] = session_id();
+
+            try {
+                if (!CLI_SCRIPT) {
+                    $is_https = !empty($_SERVER['HTTPS']);
+                    $protocol = $is_https ? 'https' : 'http';
+                    $record['request_url'] = "$protocol://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
+                } else {
+                    $args = $_SERVER['argv'];
+                    unset($args[0]);
+
+                    if ($_SERVER['SCRIPT_NAME'][0] === DIRECTORY_SEPARATOR) {
+                        //does the script name start with the directory separator?
+                        //if so, the path is defined from root; may have symbolic references so still use realpath()
+                        $script = realpath($_SERVER['SCRIPT_NAME']);
+                    } else {
+                        //otherwise prefix script name with the current working directory
+                        //and use realpath() to resolve symbolic references
+                        $script = realpath(getcwd() . DIRECTORY_SEPARATOR . $_SERVER['SCRIPT_NAME']);
+                    }
+
+                    $record['request_url'] = "php $script";
+                    if (!empty($args)) {
+                        $arguments = implode(' ', $args);
+                        $record['request_url'] .= " $arguments";
+                    }
+                }
+            } catch (\Exception) {
+            }
+
+            $record['session_lock'] = [
+                'id' => $id,
+                'whohaslock' => $whoami
+            ];
+
+            $record['backtrace'] = debug_backtrace();
+
+            return $record;
+        });
+
+        return $logger;
+    }
+    // Moxis core hack end
 
     /**
      * Obtain a session lock so we are the only one using it at the moment.
@@ -484,6 +565,9 @@ class redis extends handler {
 
         $haswarned = false; // Have we logged a lock warning?
 
+        // Moxis core hack start
+        $logger = $this->get_moxis_logger($id, $whoami);
+        // Moxis core hack end
         while (!$haslock) {
 
             $haslock = $this->connection->setnx($lockkey, $whoami);
@@ -491,6 +575,9 @@ class redis extends handler {
             if ($haslock) {
                 $this->locks[$id] = $this->time() + $this->lockexpire;
                 $this->connection->expire($lockkey, $this->lockexpire);
+                // Moxis core hack start
+                $logger->info('Session lock acquired');
+                // Moxis core hack end
                 return true;
             }
 
@@ -501,6 +588,11 @@ class redis extends handler {
                 error_log("Warning: Cannot obtain session lock for sid: $id within $this->acquirewarn seconds but will keep trying. " .
                     "It is likely another page ($whohaslock) has a long session lock, or the session lock was never released.");
                 $haswarned = true;
+                // Moxis core hack start
+                $logger->warning(
+                    "Session lock for sid: $id could not be acquired in the first $this->acquirewarn seconds, will keep trying..."
+                );
+                // Moxis core hack end
             }
 
             if ($this->time() > $startlocktime + $this->acquiretimeout) {
@@ -518,6 +610,11 @@ class redis extends handler {
                     'acquiretimeout' => $acquiretimeout,
                     'whohaslock' => $whohaslock,
                     'lockexpire' => $lockexpire];
+                // Moxis core hack start
+                $logger->warning(
+                    "Session lock for sid: $id could not be acquired within the timeout of $this->acquiretimeout seconds..."
+                );
+                // Moxis core hack end
                 throw new exception("sessioncannotobtainlock", 'error', '', $a);
             }
 
