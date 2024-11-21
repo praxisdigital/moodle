@@ -35,35 +35,22 @@ require_once($CFG->dirroot.'/backup/util/xml/parser/processors/grouped_parser_pr
  * TODO: Complete phpdocs
  */
 class restore_questions_parser_processor extends grouped_parser_processor {
-    /** @var string XML path in the questions.xml backup file to question categories. */
-    protected const CATEGORY_PATH = '/question_categories/question_category';
 
-    /** @var string XML path in the questions.xml to question elements within question_category (Moodle 4.0+). */
-    protected const QUESTION_SUBPATH =
-        '/question_bank_entries/question_bank_entry/question_version/question_versions/questions/question';
-
-    /** @var string XML path in the questions.xml to question elements within question_category (before Moodle 4.0). */
-    protected const LEGACY_QUESTION_SUBPATH = '/questions/question';
-
-    /** @var string identifies the current restore. */
-    protected string $restoreid;
-
-    /** @var int during the restore, this tracks the last category we saw. Any questions we see will be in here. */
-    protected int $lastcatid;
+    protected $restoreid;
+    protected $lastcatid;
 
     public function __construct($restoreid) {
         $this->restoreid = $restoreid;
         $this->lastcatid = 0;
-        parent::__construct();
+        parent::__construct(array());
         // Set the paths we are interested on
-        $this->add_path(self::CATEGORY_PATH);
-        $this->add_path(self::CATEGORY_PATH . self::QUESTION_SUBPATH);
-        $this->add_path(self::CATEGORY_PATH . self::LEGACY_QUESTION_SUBPATH);
+        $this->add_path('/question_categories/question_category');
+        $this->add_path('/question_categories/question_category/questions/question');
     }
 
     protected function dispatch_chunk($data) {
         // Prepare question_category record
-        if ($data['path'] == self::CATEGORY_PATH) {
+        if ($data['path'] == '/question_categories/question_category') {
             $info     = (object)$data['tags'];
             $itemname = 'question_category';
             $itemid   = $info->id;
@@ -71,8 +58,7 @@ class restore_questions_parser_processor extends grouped_parser_processor {
             $this->lastcatid = $itemid;
 
         // Prepare question record
-        } else if ($data['path'] == self::CATEGORY_PATH . self::QUESTION_SUBPATH ||
-                $data['path'] == self::CATEGORY_PATH . self::LEGACY_QUESTION_SUBPATH) {
+        } else if ($data['path'] == '/question_categories/question_category/questions/question') {
             $info = (object)$data['tags'];
             $itemname = 'question';
             $itemid   = $info->id;
