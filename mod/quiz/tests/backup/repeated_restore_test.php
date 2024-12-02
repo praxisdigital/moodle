@@ -152,4 +152,67 @@ final class repeated_restore_test extends advanced_testcase {
             $this->assertEquals($questionscourse2firstimport[$slot->slot]->questionid, $slot->questionid);
         }
     }
+
+    /**
+     * Restore a quiz with questions of same stamp.
+     */
+    public function test_restore_quiz_with_questions_same_stamp(): void {
+        global $DB, $CFG, $USER;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        // Step 1: Create a course and a user with editing teacher capabilities.
+        $generator = $this->getDataGenerator();
+        $course1 = $generator->create_course();
+        $teacher = $USER;
+        $generator->enrol_user($teacher->id, $course1->id, 'editingteacher');
+
+        $coursecontext = \context_course::instance($course1->id);
+        $questiongenerator = $this->getDataGenerator()->get_plugin_generator('core_question');
+
+        // Create a question category.
+        $cat = $questiongenerator->create_question_category(['contextid' => $coursecontext->id]);
+
+        // Create 2 quizzes with 2 questions multichoice.
+        $quiz1 = $this->create_test_quiz($course1);
+        $question1 = $questiongenerator->create_question('multichoice', 'one_of_four', ['category' => $cat->id]);
+        quiz_add_quiz_question($question1->id, $quiz1, 0);
+
+        $quiz2 = $this->create_test_quiz($course1);
+        $question2 = $questiongenerator->create_question('multichoice', 'one_of_four', ['category' => $cat->id]);
+        quiz_add_quiz_question($question2->id, $quiz2, 0);
+
+        // Set debug = false to avoid debug output of duplicated stamp.
+        $debuglevel = $CFG->debug;
+        $CFG->debug = 0;
+
+        // Update to have same stamp.
+        $DB->set_field('question', 'stamp', $question1->stamp, ['id' => $question2->id]);
+        $CFG->debug = $debuglevel;
+
+        // Verify that the questions have the same stamp.
+        $question2 = $DB->get_record('question', ['id' => $question2->id]);
+        $this->assertEquals($question2->stamp, $question1->stamp);
+
+        // Update the answers of the second question.
+        $question2data = \question_bank::load_question_data($question2->id);
+        foreach ($question2data->options->answers as $answer) {
+            $answer->answer = 'New answer ' . $answer->id;
+            $DB->update_record('question_answers', $answer);
+        }
+
+        // Step 2: Backup the quiz2.
+        $bc = new backup_controller(backup::TYPE_1ACTIVITY, $quiz2->cmid, backup::FORMAT_MOODLE,
+            backup::INTERACTIVE_NO, backup::MODE_IMPORT, $teacher->id);
+        $backupid = $bc->get_backupid();
+        $bc->execute_plan();
+        $bc->destroy();
+
+        // Step 3: Restore the backup.
+        $rc = new restore_controller($backupid, $course1->id, backup::INTERACTIVE_NO, backup::MODE_IMPORT,
+            $teacher->id, backup::TARGET_CURRENT_ADDING);
+        $rc->execute_precheck();
+        $rc->execute_plan();
+        $rc->destroy();
+    }
 }
