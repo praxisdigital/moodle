@@ -685,24 +685,41 @@ abstract class restore_dbops {
                     $questions = self::restore_get_questions($restoreid, $category->id);
 
                     // Collect all the questions for this category into memory so we only talk to the DB once.
-                    $sql = "SELECT q.stamp, q.id
-                              FROM {question} q
-                              JOIN {question_versions} qv ON qv.questionid = q.id
-                              JOIN {question_bank_entries} qbe ON qbe.id = qv.questionbankentryid
-                              JOIN {question_categories} qc ON qc.id = qbe.questioncategoryid
-                              WHERE qc.id = ?";
+                    $sql = "SELECT
+                                q.id,
+                                q.stamp,
+                                q.qtype,
+                                q.name,
+                                q.questiontext
+                            FROM {question} q
+                            JOIN {question_versions} qv ON qv.questionid = q.id
+                            JOIN {question_bank_entries} qbe ON qbe.id = qv.questionbankentryid
+                            JOIN {question_categories} qc ON qc.id = qbe.questioncategoryid
+                            WHERE qc.id = ?";
                     $params = [$matchcat->id];
-                    if (count($includeids) > 0) {
-                        list($insql, $inparams) = $DB->get_in_or_equal($includeids);
+                    if (!empty($includeids)) {
+                        [$insql, $inparams] = $DB->get_in_or_equal($includeids);
                         $sql .= " AND q.id $insql";
                         $params = array_merge($params, $inparams);
                     }
-                    $questioncache = $DB->get_records_sql_menu($sql, $params);
+
+                    // Map questions with mixer of question properties.
+                    $questioncache = [];
+
+                    $questionrecords = $DB->get_recordset_sql($sql, $params);
+                    foreach ($questionrecords as $questionrecord) {
+                        $questionchecksum = self::generate_question_checksum($questionrecord);
+                        $questioncache[$questionchecksum] = $questionrecord->id;
+                    }
+                    $questionrecords->close();
+
                     foreach ($questions as $question) {
+                        $questionchecksum = self::generate_question_checksum($question);
+
                         if (!empty($includeids) && !in_array($question->id, $includeids)) {
                             $matchqid = $question->id;
-                        } else if (isset($questioncache[$question->stamp])) {
-                            $matchqid = $questioncache[$question->stamp];
+                        } else if (isset($questioncache[$questionchecksum])) {
+                            $matchqid = $questioncache[$questionchecksum];
                         } else {
                             $matchqid = false;
                         }
@@ -1936,6 +1953,22 @@ abstract class restore_dbops {
      */
     private static function password_should_be_discarded(#[\SensitiveParameter] string $password): bool {
         return (bool) preg_match('/^[0-9a-f]{32}$/', $password);
+    }
+
+    /**
+     * Generate checksum of question data.
+     *
+     * @param object $questionrecord Question record.
+     * @return string Returns a checksum of the question data as a string.
+     */
+    private static function generate_question_checksum(object $questionrecord): string {
+        $checksum = implode('-', [
+            $questionrecord->stamp,
+            $questionrecord->qtype,
+            $questionrecord->name,
+            $questionrecord->questiontext,
+        ]);
+        return md5($checksum, true);
     }
 }
 
