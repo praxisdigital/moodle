@@ -215,4 +215,94 @@ final class repeated_restore_test extends advanced_testcase {
         $rc->execute_plan();
         $rc->destroy();
     }
+
+    /**
+     * Restore a course with a question that has the same stamp as another question.
+     */
+    public function test_restore_course_with_same_stamp(): void {
+        global $CFG, $DB, $USER;
+
+        $this->resetAfterTest();
+
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $course1 = $generator->create_course();
+        $course2 = $generator->create_course();
+        $teacher1 = $USER;
+
+        $generator->enrol_user($teacher1->id, $course1->id, 'editingteacher');
+        $generator->enrol_user($teacher1->id, $course2->id, 'editingteacher');
+
+        // Add question to system context.
+        $context = \context_system::instance();
+        /** @var \core_question_generator $questiongenerator */
+        $questiongenerator = $this->getDataGenerator()->get_plugin_generator('core_question');
+
+        $questioncategory = $questiongenerator->create_question_category(['contextid' => $context->id]);
+
+        // Create quiz with question.
+        $quiz1 = $this->create_test_quiz($course1);
+        $question1 = $questiongenerator->create_question(
+            'multichoice',
+            'one_of_four',
+            ['category' => $questioncategory->id]
+        );
+        quiz_add_quiz_question($question1->id, $quiz1, 0);
+
+        $quiz2 = $this->create_test_quiz($course1);
+        $question2 = $questiongenerator->create_question(
+            'multichoice',
+            'one_of_four',
+            ['category' => $questioncategory->id]
+        );
+        quiz_add_quiz_question($question2->id, $quiz2, 0);
+
+        // Set debug = false to avoid debug output of duplicated stamp.
+        $defaultdebug = $CFG->debug;
+        $CFG->debug = 0;
+
+        // Update to have same stamp.
+        $question2->stamp = $question1->stamp;
+        $question2->questiontext = 'Question 2';
+
+        $DB->update_record('question', $question2);
+
+        // Update question 2 with new answers.
+        $question2data = \question_bank::load_question_data($question2->id);
+        foreach ($question2data->options->answers as $answer) {
+            $answer->answer = 'New answer ' . $answer->id;
+            $DB->update_record('question_answers', $answer);
+        }
+
+        $CFG->debug = $defaultdebug;
+
+        // Expect that question 1 and question 2 have the same stamp.
+        $question2 = $DB->get_record('question', ['id' => $question2->id]);
+        $this->assertEquals($question2->stamp, $question1->stamp);
+
+        $backup = new backup_controller(
+            backup::TYPE_1COURSE,
+            $course1->id,
+            backup::FORMAT_MOODLE,
+            backup::INTERACTIVE_NO,
+            backup::MODE_IMPORT,
+            $teacher1->id
+        );
+        $backupid = $backup->get_backupid();
+        $backup->execute_plan();
+        $backup->destroy();
+
+        $restore = new restore_controller(
+            $backupid,
+            $course2->id,
+            backup::INTERACTIVE_NO,
+            backup::MODE_IMPORT,
+            $teacher1->id,
+            backup::TARGET_CURRENT_ADDING
+        );
+        $restore->execute_precheck();
+        $restore->execute_plan();
+        $restore->destroy();
+    }
 }
