@@ -43,3 +43,39 @@ input.form-control[readonly][name="guestpassword"],
 input.form-control[readonly][name="guestjoinurl"] {
     background: initial;
 }
+
+#page.drawers .main-inner{
+    max-width: 830px;
+}
+
+.mod_bigbluebuttonbn_recordings_section {
+    .section-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-gap: 22px;
+        padding-left: 0;
+        .section-item {
+            box-shadow: 0 4px 30px 0 #fff0,0 1px 6px 0 rgb(0 0 0 / .08);
+            .card-body {
+                padding-top: 1rem;
+                padding-left: 0;
+                padding-right: 0;
+                padding-bottom: 0;
+                .misc-info{
+                    border-top: 1px solid rgb(0 0 0 / .125);
+                }
+            }
+            div.card-footer {
+                div {
+                    div {
+                        justify-content: space-between;
+                        .icon {
+                            margin-right: 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

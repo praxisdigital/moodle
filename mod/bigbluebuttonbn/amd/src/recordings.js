@@ -27,6 +27,7 @@ import {prefetchStrings} from 'core/prefetch';
 import {getString, getStrings} from 'core/str';
 import {addIconToContainerWithPromise} from 'core/loadingicon';
 import Pending from 'core/pending';
+import Templates from 'core/templates';
 
 const stringsWithKeys = {
     first: 'view_recording_yui_first',
@@ -384,6 +385,83 @@ const setupDatatable = (tableId, searchFormId, response) => {
 };
 
 /**
+ * Setup the data cards for the specified BBB instance.
+ *
+ * @param {String} tableId in which we will display the cards
+ * @param {String} searchFormId The Id of the relate.
+ * @param   {object} response The response from the data request
+ * @returns {Promise}
+ */
+function setupDataCards(tableId, searchFormId, response) {
+    if (!response) {
+        return Promise.resolve();
+    }
+
+    if (!response.status) {
+        // Something failed. Continue to show the plain output.
+        return Promise.resolve();
+    }
+    console.log('Setup DataCards: start'); /* eslint-disable-line no-console */
+
+    // Removes miliseconds from time so the mustache can convert
+    const formattedData = getFormattedData(response);
+    for(let i = 0;i < formattedData.length;i++){
+        let unixtime = formattedData[i]['date'];
+        unixtime = (unixtime - unixtime%1000)/1000;
+        formattedData[i]['date'] = unixtime;
+    }
+    console.log(formattedData); /* eslint-disable-line no-console */
+    const context = {
+        cards: formattedData
+    };
+    console.log('Setup DataCards: template'); /* eslint-disable-line no-console */
+    Templates.renderForPromise('mod_bigbluebuttonbn/recordings_cards', context,)
+        .then(({html, js}) => {
+            console.log('Setup DataCards: template append'); /* eslint-disable-line no-console */
+            Templates.appendNodeContents(tableId, html, js);
+        })
+        .catch((error) => displayException(error));
+}/**
+ * Setup the data cards for the specified BBB instance.
+ *
+ * @param {String} tableId in which we will display the cards
+ * @param {String} searchFormId The Id of the relate.
+ * @param   {object} response The response from the data request
+ * @returns {Promise}
+ */
+function setupDatatabletwo(tableId, searchFormId, response) {
+    if (!response) {
+        return Promise.resolve();
+    }
+
+    if (!response.status) {
+        // Something failed. Continue to show the plain output.
+        return Promise.resolve();
+    }
+    console.log('Setup DataCards: start'); /* eslint-disable-line no-console */
+
+    // Removes miliseconds from time so the mustache can convert
+    const formattedData = getFormattedData(response);
+    for(let i = 0;i < formattedData.length;i++){
+        let unixtime = formattedData[i]['date'];
+        unixtime = (unixtime - unixtime%1000)/1000;
+        formattedData[i]['date'] = unixtime;
+    }
+
+    console.log(formattedData); /* eslint-disable-line no-console */
+    const context = {
+        rows: formattedData
+    };
+    console.log('Setup DataCards: template'); /* eslint-disable-line no-console */
+    Templates.renderForPromise('mod_bigbluebuttonbn/recordings_table2', context,)
+        .then(({html, js}) => {
+            console.log('Setup DataCards: template append'); /* eslint-disable-line no-console */
+            Templates.appendNodeContents(tableId, html, js);
+        })
+        .catch((error) => displayException(error));
+}
+
+/**
  * Initialise recordings code.
  *
  * @method init
@@ -394,7 +472,11 @@ export const init = (tableId, searchFormId) => {
     const pendingPromise = new Pending('mod_bigbluebuttonbn/recordings:init');
 
     fetchRecordingData(tableId)
-        .then(response => setupDatatable(tableId, searchFormId, response))
+        .then(response => {
+            setupDatatable(tableId, searchFormId, response);
+            setupDatatabletwo(tableId, searchFormId, response);
+            setupDataCards(tableId, searchFormId, response);
+        })
         .then(() => pendingPromise.resolve())
         .catch(displayException);
 };
