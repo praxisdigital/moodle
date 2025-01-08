@@ -104,13 +104,15 @@ class mod_bigbluebuttonbn_mod_form extends moodleform_mod {
             'instanceTypeDefault' => array_keys($instancetyperofiles)[0],
         ];
 
-        // Now add the instance type profiles to the form as a html hidden field.
-        $mform->addElement('html', html_writer::div('', 'd-none', [
-            'data-profile-types' => json_encode($instancetyperofiles),
-            'data-participant-data' => json_encode(roles::get_participant_data($context, $bigbluebuttonbn)),
-        ]));
+        if ($PAGE->context->contextlevel === CONTEXT_MODULE) {
+            // Now add the instance type profiles to the form as a html hidden field.
+            $mform->addElement('html', html_writer::div('', 'd-none', [
+                'data-profile-types' => json_encode($instancetyperofiles),
+                'data-participant-data' => json_encode(roles::get_participant_data($context, $bigbluebuttonbn)),
+            ]));
 
-        $PAGE->requires->js_call_amd('mod_bigbluebuttonbn/modform', 'init', [$jsvars]);
+            $PAGE->requires->js_call_amd('mod_bigbluebuttonbn/modform', 'init', [$jsvars]);
+        }
     }
 
     /**
