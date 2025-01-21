@@ -662,10 +662,8 @@ class cachestore_redis extends store implements
         $clock = \core\di::get(\core\clock::class);
         $timelimit = $clock->time() + $this->lockwait;
         do {
-            // If the key doesn't already exist, grab it and return true.
-            if ($this->redis->setnx($key, $ownerid)) {
-                // Ensure Redis deletes the key after a bit in case something goes wrong.
-                $this->redis->expire($key, $this->locktimeout);
+            // If the key doesn't already exist, create it with a ttl and return true.
+            if ($this->redis->set($key, $ownerid, ['nx', 'get', 'ex' => $this->locktimeout]) === false) {
                 // If we haven't got it already, better register a shutdown function.
                 if ($this->currentlocks === null) {
                     core_shutdown_manager::register_function([$this, 'shutdown_release_locks']);
