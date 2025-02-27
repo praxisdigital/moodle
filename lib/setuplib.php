@@ -1056,8 +1056,17 @@ function during_initial_install() {
 function raise_memory_limit($newlimit) {
     global $CFG;
 
+    $max_memory_limit = get_real_size($CFG->maxmemorylimit);
+
     if ($newlimit == MEMORY_UNLIMITED) {
-        ini_set('memory_limit', -1);
+        require_once $CFG->libdir . '/classes/shutdown_manager.php';
+
+        if (\core_shutdown_manager::is_shutdown_in_progress()) {
+            ini_set('memory_limit', -1);
+            return true;
+        }
+
+        ini_set('memory_limit', $max_memory_limit);
         return true;
 
     } else if ($newlimit == MEMORY_STANDARD) {
@@ -1092,6 +1101,10 @@ function raise_memory_limit($newlimit) {
 
     } else {
         $newlimit = get_real_size($newlimit);
+    }
+
+    if ($max_memory_limit > 0 && get_real_size($newlimit) > $max_memory_limit) {
+        $newlimit = $max_memory_limit;
     }
 
     if ($newlimit <= 0) {

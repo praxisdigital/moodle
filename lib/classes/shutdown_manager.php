@@ -39,6 +39,13 @@ class core_shutdown_manager {
     /** @var bool is this manager already registered? */
     protected static $registered = false;
 
+    protected static bool $is_shutdown_in_progress = false;
+
+    public static function is_shutdown_in_progress(): bool
+    {
+        return self::$is_shutdown_in_progress;
+    }
+
     /**
      * Register self as main shutdown handler.
      *
@@ -148,6 +155,8 @@ class core_shutdown_manager {
      */
     public static function shutdown_handler() {
         global $DB;
+
+        self::$is_shutdown_in_progress = true;
 
         // In case we caught an out of memory shutdown we increase memory limit to unlimited, so we can gracefully shut down.
         raise_memory_limit(MEMORY_UNLIMITED);
