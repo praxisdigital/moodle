@@ -556,6 +556,16 @@ $CFG->admin = 'admin';
 //
 //     $CFG->extramemorylimit = '1024M';
 //
+// To ensure that the memory limit is not raised above the server's actual available memory
+// you can set following setting to the maximum amount of memory that Moodle is allowed to use.
+// This ensures that PHP won't be OOM killed by the operating system, but rather that PHP will
+// handle the memory limit gracefully and run Moodle's shutdown handlers. If the value is not set,
+// then the maximum memory limit will default to the value of $CFG->extramemorylimit. If that also
+// is not set, then the maximum memory limit will default to the initial value of memory_limit during startup.
+// The value for the settings should be a valid PHP memory value. e.g. 512M, 1G
+//
+//     $CFG->maxmemorylimit = '1024M';
+//
 // Moodle 2.4 introduced a new cache API.
 // The cache API stores a configuration file within the Moodle data directory and
 // uses that rather than the database in order to function in a stand-alone manner.
