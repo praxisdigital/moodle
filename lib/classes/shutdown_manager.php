@@ -42,6 +42,18 @@ class core_shutdown_manager {
     /** @var array A list of pcntl handlers */
     protected static array $pcntlhandlers = [];
 
+    /** @var bool is shutdown in progress? */
+    protected static bool $shutdowninprogress = false;
+
+    /**
+     * Returns whether shutdown handler is running.
+     *
+     * @return bool is shutdown in progress?
+     */
+    public static function is_shutdown_in_progress(): bool {
+        return self::$shutdowninprogress;
+    }
+
     /**
      * Register self as main shutdown handler.
      *
@@ -170,6 +182,8 @@ class core_shutdown_manager {
      */
     public static function shutdown_handler() {
         global $DB;
+
+        self::$shutdowninprogress = true;
 
         // In case we caught an out of memory shutdown we increase memory limit to unlimited, so we can gracefully shut down.
         raise_memory_limit(MEMORY_UNLIMITED);
