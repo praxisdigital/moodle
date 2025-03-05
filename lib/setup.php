@@ -244,6 +244,9 @@ if (!isset($CFG->langlocalroot)) {
     $CFG->langlocalroot = $CFG->dataroot.'/lang';
 }
 
+// Set max memory limit if not already set.
+$CFG->maxmemorylimit ??= $CFG->extramemorylimit ?? ini_get('memory_limit');
+
 // The current directory in PHP version 4.3.0 and above isn't necessarily the
 // directory of the script when run from the command line. The require_once()
 // would fail, so we'll have to chdir()
@@ -576,6 +579,31 @@ require_once($CFG->libdir .'/setuplib.php');        // Functions that MUST be lo
 if (NO_OUTPUT_BUFFERING) {
     // we have to call this always before starting session because it discards headers!
     disable_output_buffering();
+}
+
+if (function_exists('uopz_set_hook')) {
+    // If uopz PHP extension is available, enforce maximum memory limit using exception.
+    uopz_set_hook('ini_set', static function ($key, $value) use ($CFG) {
+        if ($key !== 'memory_limit') {
+            return;
+        }
+
+        require_once($CFG->libdir . '/classes/shutdown_manager.php');
+
+        if (\core_shutdown_manager::is_shutdown_in_progress()) {
+            // Allow memory limit to be set during shutdown, to ensure we can recover from Out of Memory caused shutdowns.
+            return;
+        }
+
+        $maxbytes = get_real_size($CFG->maxmemorylimit);
+        $requestedbytes = get_real_size($value);
+        if ($requestedbytes > $maxbytes) {
+            // We can't allow memory limit to be set higher than the maximum memory limit.
+            throw new \Exception(
+                "Requested memory limit ($value) is greater than the maximum memory limit ($CFG->maxmemorylimit)."
+            );
+        }
+    });
 }
 
 // Increase memory limits if possible
