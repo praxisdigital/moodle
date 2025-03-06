@@ -581,7 +581,7 @@ if (NO_OUTPUT_BUFFERING) {
     disable_output_buffering();
 }
 
-if (function_exists('uopz_set_hook')) {
+if (function_exists('uopz_set_hook') && ((int)ini_get('uopz.disable')) === 0) {
     // If uopz PHP extension is available, enforce maximum memory limit using exception.
     uopz_set_hook('ini_set', static function ($key, $value) use ($CFG) {
         if ($key !== 'memory_limit') {
