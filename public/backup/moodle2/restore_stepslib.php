@@ -4990,6 +4990,10 @@ class restore_userscompletion_structure_step extends restore_structure_step {
         $data->coursemoduleid = $this->task->get_moduleid();
         $data->userid = $this->get_mappingid('user', $data->userid);
 
+        if (!$data->userid) {
+            return;
+        }
+
         // Find the existing record
         $existing = $DB->get_record('course_modules_completion', array(
                 'coursemoduleid' => $data->coursemoduleid,
@@ -5028,6 +5032,10 @@ class restore_userscompletion_structure_step extends restore_structure_step {
         $data = (object)$data;
         $data->coursemoduleid = $this->task->get_moduleid();
         $data->userid = $this->get_mappingid('user', $data->userid);
+
+        if (!$data->userid) {
+            return;
+        }
 
         $DB->insert_record('course_modules_viewed', $data);
     }
