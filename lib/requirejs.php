@@ -80,7 +80,7 @@ function requirejs_fix_define(string $modulename, string $js): string {
         // Replace only the first occurrence.
         return implode($replace, explode('define(', $js, 2));
     } else if (!preg_match('/define\s*\(/', $js)) {
-        $msg = "JS module '{$modulename}' cannot be loaded,";
+        $msg = "JS module \'{$modulename}\' cannot be loaded,";
         $msg .= " or does not contain a javascript module in AMD format. \"define()\" not found.";
         $js .=
             "/* {$msg} */\n"
