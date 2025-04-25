@@ -53,7 +53,12 @@ class editor extends \texteditor {
         $context = $PAGE->context;
 
         $config = (object) [
-            'css' => $PAGE->theme->editor_css_url()->out(false),
+            'css' => [
+                $PAGE->theme->editor_css_url()->out(false),
+                ...array_map(static function (\moodle_url $theme_css_url) {
+                    return $theme_css_url->out(false);
+                }, $PAGE->theme->css_urls($PAGE))
+            ],
             'context' => $context->id,
             'plugins' => $manager->get_plugin_configuration($context, [], []),
         ];
@@ -164,7 +169,12 @@ class editor extends \texteditor {
         $siteconfig = get_config('editor_tiny');
         $config = (object) [
             // The URL to the CSS file for the editor.
-            'css' => $PAGE->theme->editor_css_url()->out(false),
+            'css' => [
+                $PAGE->theme->editor_css_url()->out(false),
+                ...array_map(static function (\moodle_url $theme_css_url) {
+                    return $theme_css_url->out(false);
+                }, $PAGE->theme->css_urls($PAGE))
+            ],
 
             // The current context for this page or editor.
             'context' => $context->id,
