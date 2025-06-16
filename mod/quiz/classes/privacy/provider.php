@@ -486,24 +486,32 @@ class provider implements
                     cm.id AS cmid,
                     qa.*
                   FROM {context} c
-                  JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+                  JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel1
                   JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
                   JOIN {quiz} q ON q.id = cm.instance
                   JOIN {quiz_attempts} qa ON qa.quiz = q.id
             " . $qubaid->from. "
-            WHERE (
-                qa.userid = :qauserid OR
-                " . $qubaid->where() . "
-            ) AND qa.preview = 0
-        ";
+            WHERE qa.userid = :qauserid AND qa.preview = 0
+                UNION SELECT
+                    c.id AS contextid,
+                    cm.id AS cmid,
+                    qa.*
+                  FROM {context} c
+                  JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel2
+                  JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+                  JOIN {quiz} q ON q.id = cm.instance
+                  JOIN {quiz_attempts} qa ON qa.quiz = q.id
+            " . $qubaid->from. "
+            WHERE " . $qubaid->where() . " AND qa.preview = 0";
 
         $params = array_merge(
-                [
-                    'contextlevel'      => CONTEXT_MODULE,
-                    'qauserid'          => $userid,
-                ],
-                $qubaid->from_where_params()
-            );
+            [
+                'contextlevel1'      => CONTEXT_MODULE,
+                'contextlevel2'      => CONTEXT_MODULE,
+                'qauserid'          => $userid,
+            ],
+            $qubaid->from_where_params()
+        );
 
         $attempts = $DB->get_recordset_sql($sql, $params);
         foreach ($attempts as $attempt) {
