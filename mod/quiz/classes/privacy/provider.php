@@ -504,14 +504,13 @@ class provider implements
             " . $qubaid->from. "
             WHERE " . $qubaid->where() . " AND qa.preview = 0";
 
-        $params = array_merge(
-            [
-                'contextlevel1'      => CONTEXT_MODULE,
-                'contextlevel2'      => CONTEXT_MODULE,
-                'qauserid'          => $userid,
-            ],
-            $qubaid->from_where_params()
-        );
+        $sql = preg_replace('/:.*/m', '?', $sql); // Replace named params with question marks.
+        $params = array_values([
+            CONTEXT_MODULE,
+            ...array_reverse(array_values($qubaid->from_where_params())),
+            CONTEXT_MODULE,
+            ...array_reverse(array_values($qubaid->from_where_params())),
+        ]);
 
         $attempts = $DB->get_recordset_sql($sql, $params);
         foreach ($attempts as $attempt) {
