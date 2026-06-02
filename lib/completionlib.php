@@ -1266,6 +1266,14 @@ class completion_info {
         }
         $transaction->allow_commit();
 
+        // Local MDL-60912 perf follow-up: invalidate the per-request progress
+        // cache for this (course, user) so that a subsequent
+        // \core_completion\progress::get_course_progress_percentage() call in
+        // the same request sees the updated completion state. Structural
+        // changes (visibility / availability / grouping) are handled
+        // implicitly via $course->cacherev embedded in the cache key.
+        \cache::make_from_params(\cache_store::MODE_REQUEST, 'core', 'mdl60912_progress')->purge();
+
         $cmcontext = context_module::instance($data->coursemoduleid);
 
         $completioncache = cache::make('core', 'completion');
@@ -1370,6 +1378,20 @@ class completion_info {
         foreach ($activities as $cm) {
             // Step 1: Exclude activities hidden from the user on the course page.
             if (!$cm->is_visible_on_course_page()) {
+                continue;
+            }
+
+            // Fast path (local MDL-60912 perf follow-up): no availability rule,
+            // not separate-groups, no grouping restriction => the CM is accessible
+            // to every enrolled user. Skip the expensive info_module +
+            // capability_checker round-trip (get_users_by_capability on
+            // moodle/course:ignoreavailabilityrestrictions) which otherwise runs
+            // per CM per course per page render and dominates Calendar /
+            // Dashboard / Timeline pages.
+            if (empty($cm->availability)
+                    && (int)$cm->groupmode !== SEPARATEGROUPS
+                    && empty($cm->groupingid)) {
+                $visible[$cm->id] = 1;
                 continue;
             }
 
