@@ -33,6 +33,91 @@ final class automated_backup_task_test extends \advanced_testcase {
     use task_trait;
 
     /**
+     * Test the automated backup cleanup task queues course cleanup tasks.
+     *
+     * @covers \core\task\automated_backup_cleanup_task::execute
+     */
+    public function test_automated_backup_cleanup_queues_course_cleanup_tasks(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+
+        set_config('backup_auto_max_kept', '1', 'backup');
+        set_config('backup_auto_delete_days', '0', 'backup');
+
+        $course1 = $this->getDataGenerator()->create_course();
+        $course2 = $this->getDataGenerator()->create_course();
+
+        $this->execute_task('\core\task\automated_backup_cleanup_task');
+
+        $tasks = manager::get_adhoc_tasks('\core\task\course_automated_backup_cleanup_task');
+        $queuedcourseids = array_map(static function (course_automated_backup_cleanup_task $task): int {
+            return (int)$task->get_custom_data()->courseid;
+        }, $tasks);
+
+        $this->assertContains((int)$course1->id, $queuedcourseids);
+        $this->assertContains((int)$course2->id, $queuedcourseids);
+        $taskcount = $DB->count_records('task_adhoc', ['classname' => '\core\task\course_automated_backup_cleanup_task']);
+
+        // Running the dispatcher again should not queue duplicate course cleanup tasks.
+        set_config('backup_auto_cleanup_last_courseid', 0, 'backup');
+        $this->execute_task('\core\task\automated_backup_cleanup_task');
+
+        $this->assertEquals(
+            $taskcount,
+            $DB->count_records('task_adhoc', ['classname' => '\core\task\course_automated_backup_cleanup_task']),
+        );
+    }
+
+    /**
+     * Test the automated backup cleanup task does not queue work when retention is disabled.
+     *
+     * @covers \core\task\automated_backup_cleanup_task::execute
+     */
+    public function test_automated_backup_cleanup_does_not_queue_when_retention_disabled(): void {
+        $this->resetAfterTest();
+
+        set_config('backup_auto_max_kept', '0', 'backup');
+        set_config('backup_auto_delete_days', '0', 'backup');
+
+        $this->getDataGenerator()->create_course();
+
+        $this->execute_task('\core\task\automated_backup_cleanup_task');
+
+        $this->assertCount(0, manager::get_adhoc_tasks('\core\task\course_automated_backup_cleanup_task'));
+    }
+
+    /**
+     * Test course cleanup removes excess automated backups without running a new backup.
+     *
+     * @covers \core\task\course_automated_backup_cleanup_task::execute
+     * @covers \backup_cron_automated_helper::remove_excess_backups
+     */
+    public function test_course_automated_backup_cleanup_removes_excess_backups(): void {
+        $this->resetAfterTest();
+
+        set_config('backup_auto_storage', (string)\backup_cron_automated_helper::STORAGE_COURSE, 'backup');
+        set_config('backup_auto_max_kept', '2', 'backup');
+        set_config('backup_auto_delete_days', '0', 'backup');
+
+        $course = $this->getDataGenerator()->create_course();
+        $now = time();
+        $oldfile = $this->create_automated_backup_file($course->id, 'old.mbz', $now - 300);
+        $this->create_automated_backup_file($course->id, 'newer.mbz', $now - 200);
+        $this->create_automated_backup_file($course->id, 'newest.mbz', $now - 100);
+
+        $task = new course_automated_backup_cleanup_task();
+        $task->set_custom_data(['courseid' => $course->id]);
+
+        $this->start_output_buffering();
+        $task->execute();
+        $this->stop_output_buffering();
+
+        $this->assertFalse(get_file_storage()->get_file_by_id($oldfile->get_id()));
+        $this->assertEquals(['newer.mbz', 'newest.mbz'], $this->get_automated_backup_filenames($course->id));
+    }
+
+    /**
      * Test the automated backup and report tasks.
      *
      * @covers \core\task\automated_backup_report_task::execute
@@ -146,5 +231,45 @@ final class automated_backup_task_test extends \advanced_testcase {
         $message = reset($messages);
         $this->assertEquals(get_admin()->id, $message->useridto);
         $this->assertEquals('backup', $message->eventtype);
+    }
+
+    /**
+     * Create a stored automated backup file for a course.
+     *
+     * @param int $courseid Course id.
+     * @param string $filename File name.
+     * @param int $timemodified Modified time.
+     * @return \stored_file
+     */
+    private function create_automated_backup_file(int $courseid, string $filename, int $timemodified): \stored_file {
+        $context = \context_course::instance($courseid);
+        $filerecord = [
+            'contextid' => $context->id,
+            'component' => 'backup',
+            'filearea' => 'automated',
+            'itemid' => 0,
+            'filepath' => '/',
+            'filename' => $filename,
+            'timecreated' => $timemodified,
+            'timemodified' => $timemodified,
+        ];
+
+        return get_file_storage()->create_file_from_string($filerecord, 'backup content');
+    }
+
+    /**
+     * Get automated backup filenames for a course.
+     *
+     * @param int $courseid Course id.
+     * @return array
+     */
+    private function get_automated_backup_filenames(int $courseid): array {
+        $context = \context_course::instance($courseid);
+        $files = get_file_storage()->get_area_files($context->id, 'backup', 'automated', 0, 'filename ASC', false);
+        $filenames = array_map(static function (\stored_file $file): string {
+            return $file->get_filename();
+        }, $files);
+
+        return array_values($filenames);
     }
 }
