@@ -1671,6 +1671,11 @@ class restore_section_structure_step extends restore_structure_step {
                             $data, true);
                 }
             }
+            // Prevents extra subsections from being created on restore.
+            $target = $this->task->get_target();
+            if ($target === \backup::TARGET_CURRENT_ADDING || $target === \backup::TARGET_EXISTING_ADDING) {
+                $section->section = $this->get_last_section_number($this->get_courseid()) + 1;
+            }
 
             // Delegated sections should be always after the normal sections.
             $this->displace_delegated_sections_after($section->section);
