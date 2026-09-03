@@ -14,7 +14,7 @@
     "css-loader": "^6.10.0",
     "h5p-image-cropper": "github:h5p/h5p-image-cropper",
     "mini-css-extract-plugin": "^2.8.1",
-    "sass": "^1.72.0",
+    "sass": "^1.103.1",
     "sass-loader": "^14.1.1",
     "style-loader": "^3.3.4",
     "webpack": "^5.91.0",
