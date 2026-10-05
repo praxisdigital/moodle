@@ -37,7 +37,6 @@ class enrol_user_enrolment_form extends moodleform {
         $modal = !empty($this->_customdata['modal']);
 
         $periodmenu = enrol_get_period_list();
-        $duration = enrol_calculate_duration($ue->timestart, $ue->timeend);
 
         $mform->addElement('static', 'enrolmentmethod', get_string('enrolmentmethod', 'enrol'), $instancename);
 
@@ -50,7 +49,6 @@ class enrol_user_enrolment_form extends moodleform {
         $mform->addElement('date_time_selector', 'timestart', get_string('enroltimestart', 'enrol'), array('optional' => true));
 
         $mform->addElement('select', 'duration', get_string('enrolperiod', 'enrol'), $periodmenu);
-        $mform->setDefault('duration', $duration);
         $mform->disabledIf('duration', 'timestart[enabled]', 'notchecked', 1);
         $mform->disabledIf('duration', 'timeend[enabled]', 'checked', 1);
 

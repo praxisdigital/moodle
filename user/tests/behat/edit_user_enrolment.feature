@@ -38,6 +38,24 @@ Feature: Edit user enrolment
     And I should see "Not current" in the "student2" "table_row"
 
   @javascript
+  Scenario: Disable both enrolment dates after setting a date range in the edit dialogue
+    Given I am on the "Course 1" "enrolled users" page logged in as "teacher1"
+    When I click on "Edit enrolment" "icon" in the "student1" "table_row"
+    And I set the following fields to these values:
+      | timestart[enabled] | 1       |
+      | timeend[enabled]   | 1       |
+      | timeend[year]      | 2030    |
+    And I click on "Save changes" "button"
+    And I click on "Edit enrolment" "icon" in the "student1" "table_row"
+    And I set the following fields to these values:
+      | timestart[enabled] | 0 |
+      | timeend[enabled]   | 0 |
+    And I click on "Save changes" "button"
+    And I click on "Edit enrolment" "icon" in the "student1" "table_row"
+    Then the field "timestart[enabled]" matches value "0"
+    And the field "timeend[enabled]" matches value "0"
+
+  @javascript
   Scenario: Unenrol a student
     Given I am on the "Course 1" "enrolled users" page logged in as "teacher1"
     When I click on "Unenrol" "icon" in the "student1" "table_row"
@@ -116,6 +134,23 @@ Feature: Edit user enrolment
     And I click on "Save changes" "button"
     Then I should see "Suspended" in the "student1" "table_row"
     And I should see "Not current" in the "student2" "table_row"
+
+  Scenario: Disable both enrolment dates without JavaScript
+    Given I am on the "Course 1" "enrolled users" page logged in as "teacher1"
+    When I click on "Edit enrolment" "link" in the "student1" "table_row"
+    And I set the following fields to these values:
+      | timestart[enabled] | 1    |
+      | timeend[enabled]   | 1    |
+      | timeend[year]      | 2030 |
+    And I click on "Save changes" "button"
+    And I click on "Edit enrolment" "link" in the "student1" "table_row"
+    And I set the following fields to these values:
+      | timestart[enabled] | 0 |
+      | timeend[enabled]   | 0 |
+    And I click on "Save changes" "button"
+    And I click on "Edit enrolment" "link" in the "student1" "table_row"
+    Then the field "timestart[enabled]" matches value "0"
+    And the field "timeend[enabled]" matches value "0"
 
   # Without JS, the user should be redirected to the original unenrol confirmation page.
   Scenario: Unenrol a student
