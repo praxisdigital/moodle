@@ -1202,6 +1202,10 @@ class registration {
      * @return float MB to 3 decimal places.
      */
     public static function get_filepool_usage(): float {
+        // COREHACK FOR https://moodle.atlassian.net/browse/MDL-88805 UNTIL FIX IS MADE
+        // AWAITS ANSWER ON https://moodle.atlassian.net/browse/MDLSITE-8588
+        Return 5;
+
         global $DB;
 
         // Check cache first.
